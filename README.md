@@ -10,4 +10,28 @@ $ git clone <repo>
 $ git submodule --init --recursive
 ```
 
-TODO .. add build instructions
+### Prerequisites
+* Install [SWIG](http://www.swig.org/)
+If you are using Mac OSX
+```
+$ brew install swig
+```
+* Install [Android NDK](https://developer.android.com/tools/sdk/ndk/index.html)
+
+### Generate JNI java and native (C/C++) binding codes by SWIG
+```
+$ make swig
+```
+### Compile JNI native (C/C++) codes by Android NDK
+Note: Update Makefile to specify your NDK build command path
+```
+$ make ndk-build
+```
+### Compile JNI java files and make jar file
+```
+$ make ndk-build
+```
+
+### Outcome 
+* cbforest.jar
+* libs\[platform]\libcbforest.so
