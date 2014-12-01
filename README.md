@@ -7,7 +7,7 @@ The [feature/cbforest](https://github.com/couchbase/couchbase-lite-android/tree/
 
 ```
 $ git clone <repo>
-$ git submodule --init --recursive
+$ git submodule update --init --recursive
 ```
 
 ### Prerequisites
