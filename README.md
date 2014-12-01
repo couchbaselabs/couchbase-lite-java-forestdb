@@ -34,4 +34,4 @@ $ make ndk-build
 
 ### Outcome 
 * cbforest.jar
-* libs\[platform]\libcbforest.so
+* libs/[platform]/libcbforest.so
