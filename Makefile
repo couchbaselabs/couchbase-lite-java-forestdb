@@ -26,8 +26,8 @@ swig:
 # Build native liberary by NDK
 # NOTE: please modify ndk-build command path below!!
 ndk-build:
-	~/java/android-ndk-r10c/ndk-build -C jni clean
-	~/java/android-ndk-r10c/ndk-build -C jni
+	ndk-build -C jni clean
+	ndk-build -C jni
 
 # compile JNI java binding code and make Jar file
 jar:
