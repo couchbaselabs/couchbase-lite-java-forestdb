@@ -1,0 +1,3 @@
+[submodule "vendor/cbforest"]
+	path = vendor/cbforest
+	url = git@github.com:couchbaselabs/cbforest.git
