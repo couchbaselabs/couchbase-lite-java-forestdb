@@ -32,5 +32,5 @@ ndk-build:
 # compile JNI java binding code and make Jar file
 jar:
 	mkdir -p ./classes
-	javac -d ./classes ./src/com/couchbase/lite/cbforest/*.java
+	javac -source 1.7 -target 1.7 -d ./classes ./src/com/couchbase/lite/cbforest/*.java
 	jar -cf cbforest.jar -C classes/ .
