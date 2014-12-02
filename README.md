@@ -36,7 +36,7 @@ $ make ndk-build
 ```
 ### Compile JNI java files and make jar file
 ```
-$ make ndk-build
+$ make jar
 ```
 
 ### Outcome 
