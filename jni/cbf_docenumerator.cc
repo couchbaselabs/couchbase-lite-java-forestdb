@@ -31,7 +31,7 @@ ContentOptions DocEnumerator::Options::getContentOption() {
 	return (ContentOptions) this->contentOptions;
 }
 
-void DocEnumerator::Options::voidContentOption(ContentOptions contentOptions) {
+void DocEnumerator::Options::setContentOption(ContentOptions contentOptions) {
 	this->contentOptions = (forestdb::Database::contentOptions) contentOptions;
 }
 

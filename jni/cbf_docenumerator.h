@@ -29,7 +29,7 @@ public:
 		Options();
 		~Options();
 		ContentOptions getContentOption();
-		void voidContentOption(ContentOptions);
+		void setContentOption(ContentOptions);
 		bool isIncludeDeleted() const;
 		void setIncludeDeleted(bool);
 		bool isInclusiveEnd() const;
