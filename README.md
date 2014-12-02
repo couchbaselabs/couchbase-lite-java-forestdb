@@ -17,7 +17,7 @@ If you are using Mac OSX
 ```
 $ brew install swig
 ```
-* Install [Android NDK](https://developer.android.com/tools/sdk/ndk/index.html)
+* Install [Android NDK](https://developer.android.com/tools/sdk/ndk/index.html) version r10c
 
 Note: Please add NDK home directory in the envronment PATH
 ```
@@ -36,7 +36,7 @@ $ make ndk-build
 ```
 ### Compile JNI java files and make jar file
 ```
-$ make ndk-build
+$ make jar
 ```
 
 ### Outcome 
