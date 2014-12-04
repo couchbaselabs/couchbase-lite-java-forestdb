@@ -87,6 +87,7 @@ public:
 	// httpStatus -> please use getLatestHttpStatus() method
 	const Revision* insert(RevID&, Slice&, bool, bool, RevID&, bool);
 	const Revision* insert(RevID&, Slice&, bool, bool, Revision*, bool);
+	int insertHistory(std::vector<RevID*> history, Slice& body, bool deleted, bool hasAttachments);
 
 	const int getLatestHttpStatus();
 

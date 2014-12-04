@@ -81,6 +81,7 @@
 %template(VectorCollatable)     std::vector<CBF::Collatable>;
 %template(VectorMapReduceIndex) std::vector<CBF::MapReduceIndex*>;
 %template(VectorKeyRange)       std::vector<CBF::KeyRange*>;
+%template(VectorRevID)          std::vector<CBF::RevID*>;
 
 /**
  * Mappable 

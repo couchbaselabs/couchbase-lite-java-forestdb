@@ -191,7 +191,14 @@ const Revision* RevTree::insert(RevID& revID, Slice& body, bool deleted,
 			_httpStatus);
 	return rev == NULL ? NULL : new Revision(rev);
 }
-
+int RevTree::insertHistory(std::vector<RevID*> history, Slice& body, bool deleted, bool hasAttachments){
+	std::vector<forestdb::revid> _history;
+	for (std::vector<RevID*>::iterator it = history.begin(); it != history.end(); ++it) {
+		RevID* p = *it;
+		_history.push_back(*p->_revid);
+	}
+	return _revtree->insertHistory(_history, *body._slice, deleted, hasAttachments);
+}
 const int RevTree::getLatestHttpStatus() {
 	return _httpStatus;
 }
