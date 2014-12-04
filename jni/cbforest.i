@@ -70,7 +70,7 @@
 }
 %typemap(out) char* CBF::RevID::getBuf {
   if(result == NULL) return NULL;
-  size_t size = strlen(result);
+  size_t size = (arg1)->getBufSize();
   $result = JCALL1(NewByteArray, jenv, size);
   JCALL4(SetByteArrayRegion, jenv, $result, 0, size, (const jbyte*)result);
 }

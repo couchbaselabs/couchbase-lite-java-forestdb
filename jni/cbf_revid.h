@@ -24,6 +24,7 @@ class RevID : public Slice{
 
 private:
 	forestdb::revid* _revid;
+	size_t bufSize;
 	friend class RevTree;
 	friend class VersionedDocument;
 	friend class RevIDBuffer;
@@ -47,6 +48,7 @@ public:
 	char* getBuf();
 	char* toString(){ return getBuf(); }
 
+	size_t getBufSize(){ return bufSize; }
 private:
 	void init(const char*, size_t);
 	void releaseData();
