@@ -10,6 +10,8 @@
 #include "cbf_keystore.h"
 #include "cbf_mapreduceindex.h"
 
+#include <android/log.h>
+
 namespace CBF {
 
 /**
@@ -27,6 +29,8 @@ void MapFn::operator()(const forestdb::Mappable& mappable,
 MapReduceIndex::MapReduceIndex(Database& db, std::string name, KeyStore& sourceStore){
 	_mrindex = new forestdb::MapReduceIndex(db._db, name, *sourceStore.getKeyStore());
 	_index = _mrindex; // because of combination of composition and inheritance...
+
+	_sourceStore = &sourceStore;
 }
 
 MapReduceIndex::~MapReduceIndex(){
@@ -36,7 +40,9 @@ MapReduceIndex::~MapReduceIndex(){
 	}
 	_index = NULL;
 }
-
+KeyStore* MapReduceIndex::sourceStore() const { 
+	return _sourceStore; 
+}
 void MapReduceIndex::readState() {
 	_mrindex->readState();
 }
@@ -75,7 +81,20 @@ void MapReduceIndexer::InnerMapReduceIndexer::addDocument(
 
 void MapReduceIndexer::InnerMapReduceIndexer::addMappable(
 		const forestdb::Mappable& mappable) {
-	forestdb::MapReduceIndexer::addMappable(mappable);
+	__android_log_write(ANDROID_LOG_WARN, "CBF::MapReduceIndexer::InnerMapReduceIndexer::addMappable()","start");
+	try{
+		forestdb::MapReduceIndexer::addMappable(mappable);
+	}
+	catch(forestdb::error x){
+		char buff[1024];
+		sprintf(buff, "Error indexing: ForestDB error %d", x.status);
+		__android_log_write(ANDROID_LOG_WARN, "CBF::MapReduceIndexer::InnerMapReduceIndexer::addMappable()",buff);
+	}
+	catch(...){
+		__android_log_write(ANDROID_LOG_WARN, "CBF::MapReduceIndexer::InnerMapReduceIndexer::addMappable()","Unexpected exception indexing");
+	}
+
+	__android_log_write(ANDROID_LOG_WARN, "CBF::MapReduceIndexer::InnerMapReduceIndexer::addMappable()","end");
 }
 
 MapReduceIndexer::MapReduceIndexer(std::vector<MapReduceIndex*> indexes, Transaction& t) {
@@ -112,7 +131,9 @@ void MapReduceIndexer::bridgeAddDocument(const forestdb::Document& doc) {
 }
 
 void MapReduceIndexer::addMappable(const Mappable& mappable) {
+	__android_log_write(ANDROID_LOG_WARN, "CBF::MapReduceIndexer::addMappable()","start");
 	_mrindexer->addMappable(mappable);
+	__android_log_write(ANDROID_LOG_WARN, "CBF::MapReduceIndexer::addMappable()","end");
 }
 
 }

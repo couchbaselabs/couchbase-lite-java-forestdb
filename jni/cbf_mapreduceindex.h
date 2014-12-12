@@ -66,6 +66,7 @@ public:
  */
 class MapReduceIndex : public Index {
 private:
+	KeyStore* _sourceStore;
 protected:
 	forestdb::MapReduceIndex * _mrindex;
 	friend class MapReduceIndexer;
@@ -74,6 +75,7 @@ protected:
 public:
 	MapReduceIndex(Database&, std::string, KeyStore&);
 	~MapReduceIndex();
+	KeyStore* sourceStore() const;
 	void readState();
 	int indexType();
 	void setup(Transaction&, int, MapFn*, std::string);

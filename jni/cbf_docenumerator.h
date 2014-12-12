@@ -42,6 +42,8 @@ public:
 		void setOnlyConflicts(bool);
 		unsigned getSkip() const;
 		void setSkip(unsigned);
+		bool isDescending() const;
+		void setDescending(bool);
 	};
 
 private:

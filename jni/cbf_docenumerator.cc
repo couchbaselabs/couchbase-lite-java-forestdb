@@ -21,6 +21,7 @@ DocEnumerator::Options::Options() {
 	inclusiveEnd = true;
 	includeDeleted = false;
 	onlyConflicts = false;
+	descending = false;
 	contentOptions = forestdb::Database::kDefaultContent;
 }
 
@@ -81,7 +82,12 @@ unsigned DocEnumerator::Options::getSkip() const {
 void DocEnumerator::Options::setSkip(unsigned skip) {
 	this->skip = skip;
 }
-
+bool DocEnumerator::Options::isDescending() const {
+	return descending;
+}
+void DocEnumerator::Options::setDescending(bool descending){
+	this->descending = descending;
+}
 /**
  * DocEnumerator
  */
