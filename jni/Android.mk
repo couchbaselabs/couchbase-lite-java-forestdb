@@ -20,10 +20,24 @@ LOCAL_CPPFLAGS	+=	-fexceptions
 LOCAL_CPPFLAGS	+=	-fpermissive
 LOCAL_CPPFLAGS	+=	-frtti
 LOCAL_CPPFLAGS	+=	-D__ANDROID__
+
+# this requires for stdint.h active if android sdk is lower than or equal to android-19
+# With android-21, it seems no longer necessary.
+# http://stackoverflow.com/questions/986426/what-do-stdc-limit-macros-and-stdc-constant-macros-mean
+LOCAL_CPPFLAGS	+=	-D__STDC_LIMIT_MACROS  
 #LOCAL_CPPFLAGS  +=  -g -O0
+LOCAL_CPPFLAGS	+=	-Wno-unused-value
+LOCAL_CPPFLAGS	+=	-Wno-deprecated-register
+LOCAL_CPPFLAGS  += -fexceptions
+
+LOCAL_CPP_FEATURES += rtti
+LOCAL_CPP_FEATURES += exceptions
+
+# 
+PCH_FILE  := $(CBFOREST_PATH)/CBForest-Prefix.pch
+LOCAL_CPPFLAGS += -include $(PCH_FILE)
 
 LOCAL_LDLIBS    := -llog
-
 
 LOCAL_SRC_FILES :=	$(FORESTDB_PATH)/utils/adler32.cc \
 					$(FORESTDB_PATH)/utils/cJSON.cc \
