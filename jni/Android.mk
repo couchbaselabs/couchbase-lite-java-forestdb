@@ -6,7 +6,19 @@ include $(CLEAR_VARS)
 LOCAL_MODULE	:=	cbforest
 
 FORESTDB_PATH   :=  $(LOCAL_PATH)/../vendor/cbforest/vendor/forestdb
+SQLITE3_PATH   	:=  $(LOCAL_PATH)/../vendor/cbforest/vendor/sqlite3-unicodesn
 CBFOREST_PATH   :=  $(LOCAL_PATH)/../vendor/cbforest/CBForest
+
+
+LOCAL_CFLAGS    :=  -I$(SQLITE3_PATH)/libstemmer_c/runtime/ \
+					-I$(SQLITE3_PATH)/libstemmer_c/src_c/ \
+					-I$(SQLITE3_PATH)/
+
+# For sqlite3-unicodesn
+LOCAL_CFLAGS	+=	-DSQLITE_ENABLE_FTS4 \
+					-DSQLITE_ENABLE_FTS4_UNICODE61 \
+					-DWITH_STEMMER_english
+
 
 LOCAL_CPPFLAGS	:= 	-I$(FORESTDB_PATH)/include/ \
 					-I$(FORESTDB_PATH)/include/libforestdb/ \
@@ -20,6 +32,9 @@ LOCAL_CPPFLAGS	+=	-fexceptions
 LOCAL_CPPFLAGS	+=	-fpermissive
 LOCAL_CPPFLAGS	+=	-frtti
 LOCAL_CPPFLAGS	+=	-D__ANDROID__
+
+
+
 
 # this requires for stdint.h active if android sdk is lower than or equal to android-19
 # With android-21, it seems no longer necessary.
@@ -39,7 +54,13 @@ LOCAL_CPPFLAGS += -include $(PCH_FILE)
 
 LOCAL_LDLIBS    := -llog
 
-LOCAL_SRC_FILES :=	$(FORESTDB_PATH)/utils/adler32.cc \
+LOCAL_SRC_FILES :=	$(SQLITE3_PATH)/fts3_unicode2.c \
+					$(SQLITE3_PATH)/fts3_unicodesn.c \
+					$(SQLITE3_PATH)/libstemmer_c/runtime/api_sq3.c \
+					$(SQLITE3_PATH)/libstemmer_c/runtime/utilities_sq3.c \
+					$(SQLITE3_PATH)/libstemmer_c/src_c/stem_UTF_8_english.c \
+					$(SQLITE3_PATH)/libstemmer_c/src_c/stem_ISO_8859_1_english.c \
+					$(FORESTDB_PATH)/utils/adler32.cc \
 					$(FORESTDB_PATH)/utils/crc32.cc \
 					$(FORESTDB_PATH)/utils/debug.cc \
 					$(FORESTDB_PATH)/utils/iniparser.cc \
@@ -83,6 +104,7 @@ LOCAL_SRC_FILES :=	$(FORESTDB_PATH)/utils/adler32.cc \
 					$(CBFOREST_PATH)/RevTree.cc \
 					$(CBFOREST_PATH)/VersionedDocument.cc \
 					$(CBFOREST_PATH)/MapReduceIndex.cc \
+					$(CBFOREST_PATH)/Tokenizer.cc \
 					cbf_collatable.cc \
 					cbf_keystore.cc \
 					cbf_database.cc \
