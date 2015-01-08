@@ -40,17 +40,17 @@ LOCAL_CPPFLAGS += -include $(PCH_FILE)
 LOCAL_LDLIBS    := -llog
 
 LOCAL_SRC_FILES :=	$(FORESTDB_PATH)/utils/adler32.cc \
-					$(FORESTDB_PATH)/utils/cJSON.cc \
 					$(FORESTDB_PATH)/utils/crc32.cc \
 					$(FORESTDB_PATH)/utils/debug.cc \
+					$(FORESTDB_PATH)/utils/iniparser.cc \
 					$(FORESTDB_PATH)/utils/memleak.cc \
+					$(FORESTDB_PATH)/utils/partiallock.cc \
 					$(FORESTDB_PATH)/src/api_wrapper.cc \
 					$(FORESTDB_PATH)/src/avltree.cc \
 					$(FORESTDB_PATH)/src/blockcache.cc \
 					$(FORESTDB_PATH)/src/btree.cc \
 					$(FORESTDB_PATH)/src/btree_fast_str_kv.cc \
 					$(FORESTDB_PATH)/src/btree_kv.cc \
-					$(FORESTDB_PATH)/src/btree_prefix_kv.cc \
 					$(FORESTDB_PATH)/src/btree_str_kv.cc \
 					$(FORESTDB_PATH)/src/btreeblock.cc \
 					$(FORESTDB_PATH)/src/compactor.cc \

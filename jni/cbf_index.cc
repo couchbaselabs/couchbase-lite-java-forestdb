@@ -102,15 +102,14 @@ IndexEnumerator::IndexEnumerator(Index& index, Collatable& startKey,
 
 IndexEnumerator::IndexEnumerator(Index& index,
 				std::vector<KeyRange*> keyRanges,
-				const DocEnumerator::Options options,
-				bool firstRead){
+				const DocEnumerator::Options options){
 
 	std::vector<forestdb::KeyRange> _keyRanges;
 	for (std::vector<KeyRange*>::iterator it = keyRanges.begin(); it != keyRanges.end(); ++it) {
 		KeyRange* p = *it;
 		_keyRanges.push_back(*p->_range);
 	}
-	_enum = new forestdb::IndexEnumerator(index._index, _keyRanges, options, firstRead);
+	_enum = new forestdb::IndexEnumerator(index._index, _keyRanges, options);
 }
 
 CollatableReader* IndexEnumerator::key() const {

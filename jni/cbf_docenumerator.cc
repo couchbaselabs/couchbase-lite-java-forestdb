@@ -17,11 +17,10 @@ const DocEnumerator::Options DocEnumerator::Options::Default;
 DocEnumerator::Options::Options() {
 	skip = 0;
 	limit = UINT_MAX;
+	descending = false;
 	inclusiveStart = true;
 	inclusiveEnd = true;
 	includeDeleted = false;
-	onlyConflicts = false;
-	descending = false;
 	contentOptions = forestdb::Database::kDefaultContent;
 }
 
@@ -65,14 +64,6 @@ unsigned DocEnumerator::Options::getLimit() const {
 
 void DocEnumerator::Options::setLimit(unsigned limit) {
 	this->limit = limit;
-}
-
-bool DocEnumerator::Options::isOnlyConflicts() const {
-	return onlyConflicts;
-}
-
-void DocEnumerator::Options::setOnlyConflicts(bool onlyConflicts) {
-	this->onlyConflicts = onlyConflicts;
 }
 
 unsigned DocEnumerator::Options::getSkip() const {
@@ -119,8 +110,8 @@ bool DocEnumerator::next() {
 	return _enum->next();
 }
 
-bool DocEnumerator::seek(Slice& key) {
-	return _enum->seek(*key._slice);
+void DocEnumerator::seek(Slice& key) {
+	_enum->seek(*key._slice);
 }
 
 Document* DocEnumerator::doc() {

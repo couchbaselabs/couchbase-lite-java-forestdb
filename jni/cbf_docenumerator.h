@@ -38,8 +38,6 @@ public:
 		void setInclusiveStart(bool);
 		unsigned getLimit() const;
 		void setLimit(unsigned);
-		bool isOnlyConflicts() const;
-		void setOnlyConflicts(bool);
 		unsigned getSkip() const;
 		void setSkip(unsigned);
 		bool isDescending() const;
@@ -63,7 +61,7 @@ public:
 			const Options options = Options::Default);
 	~DocEnumerator();
 	bool next();
-	bool seek(Slice& key);
+	void seek(Slice& key);
 	Document* doc();
 	void close();
 

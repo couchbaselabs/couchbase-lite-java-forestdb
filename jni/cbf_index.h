@@ -93,8 +93,7 @@ public:
 					const DocEnumerator::Options options = DocEnumerator::Options::Default);
 	IndexEnumerator(Index&,
 					std::vector<KeyRange*> keyRanges,
-					const DocEnumerator::Options options = DocEnumerator::Options::Default,
-					bool firstRead =true);
+					const DocEnumerator::Options options = DocEnumerator::Options::Default);
 	CollatableReader* key() const;
 	CollatableReader* value() const;
 	Slice* docID() const;
