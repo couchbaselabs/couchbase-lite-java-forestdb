@@ -6,6 +6,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE	:=	cbforest
 
 FORESTDB_PATH   :=  $(LOCAL_PATH)/../vendor/cbforest/vendor/forestdb
+SNAPPY_PATH     :=  $(LOCAL_PATH)/../vendor/cbforest/vendor/snappy
 SQLITE3_PATH   	:=  $(LOCAL_PATH)/../vendor/cbforest/vendor/sqlite3-unicodesn
 CBFOREST_PATH   :=  $(LOCAL_PATH)/../vendor/cbforest/CBForest
 
@@ -17,14 +18,15 @@ LOCAL_CFLAGS    :=  -I$(SQLITE3_PATH)/libstemmer_c/runtime/ \
 # For sqlite3-unicodesn
 LOCAL_CFLAGS	+=	-DSQLITE_ENABLE_FTS4 \
 					-DSQLITE_ENABLE_FTS4_UNICODE61 \
-					-DWITH_STEMMER_english
-
+					-DWITH_STEMMER_english \
+					-DHAVE_GCC_ATOMICS=1
 
 LOCAL_CPPFLAGS	:= 	-I$(FORESTDB_PATH)/include/ \
 					-I$(FORESTDB_PATH)/include/libforestdb/ \
 					-I$(FORESTDB_PATH)/src/ \
 					-I$(FORESTDB_PATH)/utils/ \
 					-I$(FORESTDB_PATH)/option/ \
+					-I$(SNAPPY_PATH)/ \
 					-I$(CBFOREST_PATH)/
 
 LOCAL_CPPFLAGS	+=	-std=c++11
@@ -32,9 +34,6 @@ LOCAL_CPPFLAGS	+=	-fexceptions
 LOCAL_CPPFLAGS	+=	-fpermissive
 LOCAL_CPPFLAGS	+=	-frtti
 LOCAL_CPPFLAGS	+=	-D__ANDROID__
-
-
-
 
 # this requires for stdint.h active if android sdk is lower than or equal to android-19
 # With android-21, it seems no longer necessary.
@@ -63,10 +62,13 @@ LOCAL_SRC_FILES :=	$(SQLITE3_PATH)/fts3_unicode2.c \
 					$(FORESTDB_PATH)/utils/adler32.cc \
 					$(FORESTDB_PATH)/utils/crc32.cc \
 					$(FORESTDB_PATH)/utils/debug.cc \
+					$(FORESTDB_PATH)/utils/get_memory_size.cc \
 					$(FORESTDB_PATH)/utils/iniparser.cc \
 					$(FORESTDB_PATH)/utils/memleak.cc \
 					$(FORESTDB_PATH)/utils/partiallock.cc \
+					$(FORESTDB_PATH)/utils/time_utils.cc \
 					$(FORESTDB_PATH)/src/api_wrapper.cc \
+					$(FORESTDB_PATH)/src/atomic.cc \
 					$(FORESTDB_PATH)/src/avltree.cc \
 					$(FORESTDB_PATH)/src/blockcache.cc \
 					$(FORESTDB_PATH)/src/btree.cc \
@@ -92,6 +94,10 @@ LOCAL_SRC_FILES :=	$(SQLITE3_PATH)/fts3_unicode2.c \
 					$(FORESTDB_PATH)/src/snapshot.cc \
 					$(FORESTDB_PATH)/src/transaction.cc \
 					$(FORESTDB_PATH)/src/wal.cc \
+					$(SNAPPY_PATH)/snappy.cc \
+					$(SNAPPY_PATH)/snappy-c.cc \
+					$(SNAPPY_PATH)/snappy-sinksource.cc \
+					$(SNAPPY_PATH)/snappy-stubs-internal.cc \
 					$(CBFOREST_PATH)/slice.cc \
 					$(CBFOREST_PATH)/varint.cc \
 					$(CBFOREST_PATH)/Collatable.cc \

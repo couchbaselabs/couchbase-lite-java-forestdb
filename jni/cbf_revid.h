@@ -77,5 +77,4 @@ public:
 
 }
 
-
 #endif /* CBF_REVID_H_ */

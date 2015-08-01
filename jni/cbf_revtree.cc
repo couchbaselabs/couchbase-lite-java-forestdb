@@ -33,10 +33,6 @@ Sequence Revision::getSequence() {
 	return _revision->sequence;
 }
 
-Slice* Revision::getBody() {
-	return new Slice(_revision->body);
-}
-
 bool Revision::isBodyAvailable() const {
 	return _revision->isBodyAvailable();
 }
@@ -173,13 +169,6 @@ const Revision* RevTree::insert(RevID& revID, Slice& body, bool deleted,
 			*body._slice, deleted, hasAttachments, *parentRevID._revid,
 			allowConflict, _httpStatus);
 
-	/*
-	char buff[1024];
-	std::string str = (std::string)*revID._revid;
-	sprintf(buff, "str => %s, revid => %s   slice => %s rev->revID.buf => %s",str.c_str(), (char *)revID._revid->buf, (char *)revID._slice->buf, (char *)rev->revID.buf);
-	__android_log_write(ANDROID_LOG_INFO, "CBF::RevTree::insert", buff);
-	*/
-
 	return rev == NULL ? NULL : new Revision(rev);
 }
 
@@ -216,4 +205,3 @@ void RevTree::sort() {
 }
 
 }
-

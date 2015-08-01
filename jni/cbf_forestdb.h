@@ -23,7 +23,6 @@ enum ContentOptions {
 	kMetaOnly = 0x01
 };
 
-
 // from fdb_types.h
 enum OpenFlags {
 	FDB_OPEN_FLAG_CREATE = 1,

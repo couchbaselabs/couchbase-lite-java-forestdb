@@ -42,7 +42,7 @@ public:
 
 	// typedef fdb_open_flags openFlags;
 	// typedef uint32_t fdb_open_flags;
-	Database(std::string path, OpenFlags flags, const Config& cfg);
+	Database(std::string path, const Config& cfg);
 	Database(forestdb::Database*);
 	~Database();
 

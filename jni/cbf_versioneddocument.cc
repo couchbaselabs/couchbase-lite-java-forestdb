@@ -78,11 +78,5 @@ void VersionedDocument::save(Transaction& transaction) {
 	_vdoc->save(*transaction._trans);
 }
 
-/** Gets the flags from a document without having to instantiate a VersionedDocument */
-VersionedDocument::Flags VersionedDocument::flagsOfDocument(
-		const Document& doc) {
-	return forestdb::VersionedDocument::flagsOfDocument(*doc._doc);
-}
-
 }
 

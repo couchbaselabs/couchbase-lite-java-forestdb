@@ -37,7 +37,6 @@ public:
 	RevID* getRevID();
 	Sequence getSequence();
 
-	Slice* getBody();
 	bool isBodyAvailable() const;
 	Slice* readBody() const;
 
@@ -53,7 +52,6 @@ public:
 
 	bool isSameAddress(Revision*); //for test
 };
-
 
 /**
  * RevTree - wrapper class of forestdb::RevTree

@@ -109,10 +109,8 @@ public:
 		BridgeMapReduceIndexer* _bridge;
 		friend class MapReduceIndexer;
 	public:
-		InnerMapReduceIndexer(std::vector<forestdb::MapReduceIndex*> indexes,
-				forestdb::Transaction& trans,
-				BridgeMapReduceIndexer* bridge) :
-				forestdb::MapReduceIndexer(indexes, trans), _bridge(bridge) {
+		InnerMapReduceIndexer(BridgeMapReduceIndexer* bridge) :
+			forestdb::MapReduceIndexer(), _bridge(bridge) {
 		}
 		virtual void addDocument(const forestdb::Document&);
 		virtual void addMappable(const forestdb::Mappable&);
@@ -122,8 +120,9 @@ private:
 	InnerMapReduceIndexer* _mrindexer;
 
 public:
-    MapReduceIndexer(std::vector<MapReduceIndex*>, Transaction&);
+    MapReduceIndexer();
     virtual ~MapReduceIndexer();
+    void addIndex(MapReduceIndex*, Transaction&);
     void triggerOnIndex(MapReduceIndex*);
     bool run();
     virtual void addDocument(const Document*);

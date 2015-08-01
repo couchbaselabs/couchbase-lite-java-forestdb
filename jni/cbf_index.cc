@@ -13,7 +13,6 @@
 #include "cbf_collatable.h"
 #include "cbf_index.h"
 
-
 namespace CBF {
 
 /**

@@ -69,23 +69,12 @@ char* RevID::getBuf() {
 		return NULL;
 
 	Slice* slice = expanded();
-
 	bufSize = slice->getSize();
-
-	char buff[1024];
-	strncpy(buff, (char*)slice->getBuf(), bufSize);
-	buff[bufSize] = '\0';
-	__android_log_write(ANDROID_LOG_WARN, "CBF::RevID::getBuf()",buff);
-	/*
+	
+	// NOTE: slice data is sometimes not null stopped. Need to null stop
 	std::string s(slice->getBuf(), slice->getSize());
-	char buff[1024];
-	sprintf(buff, "[%s] (%d)", (char*)slice->getBuf(), slice->getSize());
-	__android_log_write(ANDROID_LOG_WARN, "CBF::RevID::getBuf()",buff);
-	__android_log_write(ANDROID_LOG_WARN, "CBF::RevID::getBuf()",s.c_str());
-	//return (char*)s.c_str();
-	*/
-	return (char*)slice->getBuf();
-	//return slice->getBuf();
+	//__android_log_write(ANDROID_LOG_WARN, "cbf::RevID::getBuf()",s.c_str());
+	return (char*)s.c_str();
 }
 
 void RevID::init(const char* b, size_t s) {
@@ -147,6 +136,3 @@ void RevIDBuffer::parse(Slice& s) {
 }
 
 }
-
-
-

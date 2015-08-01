@@ -23,12 +23,6 @@ Slice::Slice(const char* b, size_t s) {
 	init(b, s);
 }
 
-/*
-Slice::Slice(const char* str) {
-	init(str, strlen(str));
-}
-*/
-
 Slice::Slice(const forestdb::slice& s) {
 	init((const char *) s.buf, s.size);
 }
@@ -70,7 +64,6 @@ const size_t Slice::getSize() {
 void Slice::releaseData() {
 	if (_slice != NULL) {
 		if (_slice->buf != NULL) {
-			//delete[] (char*) _slice->buf;
 			::free((void*)_slice->buf);
 			_slice->buf = NULL;
 			_slice->size = 0;
@@ -89,12 +82,9 @@ void Slice::init(const char* b, size_t s) {
 		char* tmp = (char*)::malloc(s);
 		if (tmp != NULL) {
 			::memcpy(tmp, b, s);
-			//tmp[s] = '\0';
 			_slice = new forestdb::slice(tmp, s);
 		}
 	}
 }
 
-
 }
-

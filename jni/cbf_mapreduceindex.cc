@@ -97,14 +97,8 @@ void MapReduceIndexer::InnerMapReduceIndexer::addMappable(
 	__android_log_write(ANDROID_LOG_WARN, "CBF::MapReduceIndexer::InnerMapReduceIndexer::addMappable()","end");
 }
 
-MapReduceIndexer::MapReduceIndexer(std::vector<MapReduceIndex*> indexes, Transaction& t) {
-	std::vector<forestdb::MapReduceIndex*> _indexes;
-	for (std::vector<MapReduceIndex*>::iterator it = indexes.begin();
-			it != indexes.end(); ++it) {
-		MapReduceIndex* p = *it;
-		_indexes.push_back(p->_mrindex);
-	}
-	_mrindexer = new InnerMapReduceIndexer(_indexes,*t._trans, this);
+MapReduceIndexer::MapReduceIndexer() {
+	_mrindexer = new InnerMapReduceIndexer(this);
 }
 
 MapReduceIndexer::~MapReduceIndexer() {
@@ -113,7 +107,9 @@ MapReduceIndexer::~MapReduceIndexer() {
 		_mrindexer = NULL;
 	}
 }
-
+void MapReduceIndexer::addIndex(MapReduceIndex* index, Transaction& t){
+	_mrindexer->addIndex(index->_mrindex, t._trans);
+}
 void MapReduceIndexer::triggerOnIndex(MapReduceIndex* index) {
 	_mrindexer->triggerOnIndex(index->_mrindex);
 }

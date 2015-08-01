@@ -16,10 +16,9 @@ Config Database::defaultConfig() {
 	return Config(forestdb::Database::defaultConfig());
 }
 
-Database::Database(std::string path, OpenFlags flags, const Config& cfg) {
-	_db = new forestdb::Database(path, flags, cfg);
+Database::Database(std::string path, const Config& cfg) {
+	_db = new forestdb::Database(path, cfg);
 }
-
 
 Database::Database(forestdb::Database* database) {
 	_db = database;
@@ -58,9 +57,6 @@ void Database::compact() {
 void Database::commit() {
 	_db->commit();
 }
-
-
-
 
 /**
  * Transaction - implementation

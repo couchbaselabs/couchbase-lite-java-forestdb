@@ -19,7 +19,6 @@ namespace CBF {
     class KeyStoreWriter;
     class Transaction;
 
-
 /**
  * KeyStore - wrapper class of forestdb::KeyStore
  */
@@ -49,7 +48,6 @@ public:
 	void erase(Transaction&);
 };
 
-
 /**
  * KeyStoreWriter - wrapper class of forestdb::KeyStoreWriter
  */
@@ -74,8 +72,6 @@ public:
 	void rollbackTo(Sequence);
 };
 
-
 }
-
 
 #endif /* CBF_KEYSTORE_H_ */

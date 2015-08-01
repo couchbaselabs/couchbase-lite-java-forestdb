@@ -42,7 +42,6 @@ private:
 	friend class Index;
 	friend class IndexWriter;
 
-
 // member methods
 public:
 

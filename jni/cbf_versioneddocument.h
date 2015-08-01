@@ -52,7 +52,6 @@ public:
 	Sequence getSequence() const;
 	bool changed() const;
 	void save(Transaction&);
-	static Flags flagsOfDocument(const Document&);
 };
 
 }
