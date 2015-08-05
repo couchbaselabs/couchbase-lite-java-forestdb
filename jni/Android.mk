@@ -52,6 +52,7 @@ PCH_FILE  := $(CBFOREST_PATH)/CBForest-Prefix.pch
 LOCAL_CPPFLAGS += -include $(PCH_FILE)
 
 LOCAL_LDLIBS    := -llog
+#LOCAL_LDLIBS    += -latomic  # for armeabi
 
 LOCAL_SRC_FILES :=	$(SQLITE3_PATH)/fts3_unicode2.c \
 					$(SQLITE3_PATH)/fts3_unicodesn.c \

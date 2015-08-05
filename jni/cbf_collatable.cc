@@ -4,6 +4,7 @@
  *  Created on: Nov 12, 2014
  *      Author: hideki
  */
+#include <android/log.h>
 
 #include "slice.hh"
 #include "Collatable.hh"
@@ -47,12 +48,11 @@ Collatable::Collatable(const Slice& v) :
 }
 
 Collatable::~Collatable() {
-	/* TODO - revisit this
-	 if(_collatable!=NULL){
-	 delete _collatable;
-	 _collatable = NULL;
-	 }
-	 */
+	if(_collatable != NULL){
+		//__android_log_write(ANDROID_LOG_WARN, "Collatable::~Collatable()","delete _collatable;");
+		delete _collatable;
+		_collatable = NULL;
+	}
 }
 
 Collatable* Collatable::addNull() {
