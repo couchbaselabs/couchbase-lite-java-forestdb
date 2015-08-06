@@ -13,7 +13,6 @@ namespace CBF {
 /**
  * Slice - implementation
  */
-const Slice Slice::Null(forestdb::slice::null);
 
 Slice::Slice() {
 	_slice = new forestdb::slice();
@@ -75,7 +74,7 @@ void Slice::releaseData() {
 
 void Slice::init(const char* b, size_t s) {
 	if(b == NULL){
-		_slice = new forestdb::slice((void *)NULL, (unsigned int)0);
+		_slice = new forestdb::slice((void *)NULL, (unsigned int)s);
 	}
 	else{
 		//char* tmp = new char[s + 1];

@@ -24,8 +24,6 @@ namespace CBF {
 class DocEnumerator {
 public:
 	struct Options: public forestdb::DocEnumerator::Options {
-		static const Options Default;
-		static Options getDef(){ return Default; }
 		Options();
 		~Options();
 		ContentOptions getContentOption();
@@ -52,13 +50,9 @@ private:
 
 public:
 	DocEnumerator();
-	DocEnumerator(KeyStore& store, const Slice& startKey = Slice::Null,
-			const Slice& endKey = Slice::Null, const Options options =
-					Options::Default);
-	DocEnumerator(KeyStore& store, std::vector<std::string>& docIDs,
-			const Options options = Options::Default);
-	DocEnumerator(KeyStore& store, Sequence start, Sequence end = UINT64_MAX,
-			const Options options = Options::Default);
+	DocEnumerator(KeyStore& store, const Slice& startKey, const Slice& endKey, const Options options);
+	DocEnumerator(KeyStore& store, std::vector<std::string>& docIDs, const Options options);
+	DocEnumerator(KeyStore& store, Sequence start, Sequence end, const Options options);
 	~DocEnumerator();
 	bool next();
 	void seek(Slice& key);

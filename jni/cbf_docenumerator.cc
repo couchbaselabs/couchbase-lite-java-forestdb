@@ -12,7 +12,6 @@ namespace CBF {
 /**
  * DocEnumerator::Options
  */
-const DocEnumerator::Options DocEnumerator::Options::Default;
 
 DocEnumerator::Options::Options() {
 	skip = 0;

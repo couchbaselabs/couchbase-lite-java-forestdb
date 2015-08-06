@@ -19,8 +19,6 @@ namespace CBF {
 class Slice {
 
 // member variables
-public:
-	static const Slice Null;
 
 private:
 	forestdb::slice* _slice;

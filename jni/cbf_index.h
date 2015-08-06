@@ -90,10 +90,10 @@ public:
 					Slice&,
 					Collatable&,
 					Slice&,
-					const DocEnumerator::Options options = DocEnumerator::Options::Default);
+					const DocEnumerator::Options options);
 	IndexEnumerator(Index&,
 					std::vector<KeyRange*> keyRanges,
-					const DocEnumerator::Options options = DocEnumerator::Options::Default);
+					const DocEnumerator::Options options);
 	CollatableReader* key() const;
 	CollatableReader* value() const;
 	Slice* docID() const;
