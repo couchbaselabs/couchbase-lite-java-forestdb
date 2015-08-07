@@ -129,8 +129,8 @@
      $action
   } catch (forestdb::error err) {
     jclass clazz = jenv->FindClass("java/lang/Exception");
-    char buff[256];
-    sprintf(buff, "Failed to initialize Database: %d", err.status);
+    char buff[64];
+    sprintf(buff, "%d", err.status);
     jenv->ThrowNew(clazz, buff);
     return $null;
    }
@@ -140,8 +140,8 @@
      $action
   } catch (forestdb::error err) {
     jclass clazz = jenv->FindClass("java/lang/Exception");
-    char buff[256];
-    sprintf(buff, "Failed to call getInfo(): %d", err.status);
+    char buff[64];
+    sprintf(buff, "%d", err.status);
     jenv->ThrowNew(clazz, buff);
     return $null;
    }
@@ -152,8 +152,8 @@
      $action
   } catch (forestdb::error err) {
     jclass clazz = jenv->FindClass("java/lang/Exception");
-    char buff[256];
-    sprintf(buff, "Failed to call compact(): %d", err.status);
+    char buff[64];
+    sprintf(buff, "%d", err.status);
     jenv->ThrowNew(clazz, buff);
     return $null;
    }
@@ -163,8 +163,8 @@
      $action
   } catch (forestdb::error err) {
     jclass clazz = jenv->FindClass("java/lang/Exception");
-    char buff[256];
-    sprintf(buff, "Failed to call commit(): %d", err.status);
+    char buff[64];
+    sprintf(buff, "%d", err.status);
     jenv->ThrowNew(clazz, buff);
     return $null;
    }
@@ -175,8 +175,8 @@
      $action
   } catch (forestdb::error err) {
     jclass clazz = jenv->FindClass("java/lang/Exception");
-    char buff[256];
-    sprintf(buff, "Failed to initialize DocEnumerator: %d", err.status);
+    char buff[64];
+    sprintf(buff, "%d", err.status);
     jenv->ThrowNew(clazz, buff);
     return $null;
    }
@@ -186,8 +186,8 @@
      $action
   } catch (forestdb::error err) {
     jclass clazz = jenv->FindClass("java/lang/Exception");
-    char buff[256];
-    sprintf(buff, "Failed to call next(): %d", err.status);
+    char buff[64];
+    sprintf(buff, "%d", err.status);
     jenv->ThrowNew(clazz, buff);
     return $null;
    }
@@ -197,8 +197,8 @@
      $action
   } catch (forestdb::error err) {
     jclass clazz = jenv->FindClass("java/lang/Exception");
-    char buff[256];
-    sprintf(buff, "Failed to call seek(): %d", err.status);
+    char buff[64];
+    sprintf(buff, "%d", err.status);
     jenv->ThrowNew(clazz, buff);
     return $null;
    }
@@ -208,8 +208,8 @@
      $action
   } catch (forestdb::error err) {
     jclass clazz = jenv->FindClass("java/lang/Exception");
-    char buff[256];
-    sprintf(buff, "Failed to call getDoc(): %d", err.status);
+    char buff[64];
+    sprintf(buff, "%d", err.status);
     jenv->ThrowNew(clazz, buff);
     return $null;
    }
@@ -230,8 +230,8 @@
      $action
   } catch (forestdb::error err) {
     jclass clazz = jenv->FindClass("java/lang/Exception");
-    char buff[256];
-    sprintf(buff, "Failed to call getInfo(): %d", err.status);
+    char buff[64];
+    sprintf(buff, "%d", err.status);
     jenv->ThrowNew(clazz, buff);
     return $null;
    }
@@ -241,8 +241,8 @@
      $action
   } catch (forestdb::error err) {
     jclass clazz = jenv->FindClass("java/lang/Exception");
-    char buff[256];
-    sprintf(buff, "Failed to call lastSequence(): %d", err.status);
+    char buff[64];
+    sprintf(buff, "%d", err.status);
     jenv->ThrowNew(clazz, buff);
     return $null;
    }
@@ -252,8 +252,8 @@
      $action
   } catch (forestdb::error err) {
     jclass clazz = jenv->FindClass("java/lang/Exception");
-    char buff[256];
-    sprintf(buff, "Failed to call get(): %d", err.status);
+    char buff[64];
+    sprintf(buff, "%d", err.status);
     jenv->ThrowNew(clazz, buff);
     return $null;
    }
@@ -263,8 +263,8 @@
      $action
   } catch (forestdb::error err) {
     jclass clazz = jenv->FindClass("java/lang/Exception");
-    char buff[256];
-    sprintf(buff, "Failed to call read(): %d", err.status);
+    char buff[64];
+    sprintf(buff, "%d", err.status);
     jenv->ThrowNew(clazz, buff);
     return $null;
    }
@@ -274,8 +274,8 @@
      $action
   } catch (forestdb::error err) {
     jclass clazz = jenv->FindClass("java/lang/Exception");
-    char buff[256];
-    sprintf(buff, "Failed to call getByOffset(): %d", err.status);
+    char buff[64];
+    sprintf(buff, "%d", err.status);
     jenv->ThrowNew(clazz, buff);
     return $null;
    }
@@ -285,8 +285,8 @@
      $action
   } catch (forestdb::error err) {
     jclass clazz = jenv->FindClass("java/lang/Exception");
-    char buff[256];
-    sprintf(buff, "Failed to call rollbackTo(): %d", err.status);
+    char buff[64];
+    sprintf(buff, "%d", err.status);
     jenv->ThrowNew(clazz, buff);
     return $null;
    }
@@ -296,8 +296,8 @@
      $action
   } catch (forestdb::error err) {
     jclass clazz = jenv->FindClass("java/lang/Exception");
-    char buff[256];
-    sprintf(buff, "Failed to call write(): %d", err.status);
+    char buff[64];
+    sprintf(buff, "%d", err.status);
     jenv->ThrowNew(clazz, buff);
     return $null;
    }
@@ -307,8 +307,8 @@
      $action
   } catch (forestdb::error err) {
     jclass clazz = jenv->FindClass("java/lang/Exception");
-    char buff[256];
-    sprintf(buff, "Failed to call set(): %d", err.status);
+    char buff[64];
+    sprintf(buff, "%d", err.status);
     jenv->ThrowNew(clazz, buff);
     return $null;
    }
@@ -318,8 +318,8 @@
      $action
   } catch (forestdb::error err) {
     jclass clazz = jenv->FindClass("java/lang/Exception");
-    char buff[256];
-    sprintf(buff, "Failed to call del(): %d", err.status);
+    char buff[64];
+    sprintf(buff, "%d", err.status);
     jenv->ThrowNew(clazz, buff);
     return $null;
    }
@@ -329,8 +329,8 @@
      $action
   } catch (forestdb::error err) {
     jclass clazz = jenv->FindClass("java/lang/Exception");
-    char buff[256];
-    sprintf(buff, "Failed to call generation(): %d", err.status);
+    char buff[64];
+    sprintf(buff, "%d", err.status);
     jenv->ThrowNew(clazz, buff);
     return $null;
    }
@@ -340,8 +340,8 @@
      $action
   } catch (forestdb::error err) {
     jclass clazz = jenv->FindClass("java/lang/Exception");
-    char buff[256];
-    sprintf(buff, "Failed to call digest(): %d", err.status);
+    char buff[64];
+    sprintf(buff, "%d", err.status);
     jenv->ThrowNew(clazz, buff);
     return $null;
    }
@@ -351,8 +351,8 @@
      $action
   } catch (forestdb::error err) {
     jclass clazz = jenv->FindClass("java/lang/Exception");
-    char buff[256];
-    sprintf(buff, "Failed to call parse(): %d", err.status);
+    char buff[64];
+    sprintf(buff, "%d", err.status);
     jenv->ThrowNew(clazz, buff);
     return $null;
    }
@@ -362,8 +362,8 @@
      $action
   } catch (forestdb::error err) {
     jclass clazz = jenv->FindClass("java/lang/Exception");
-    char buff[256];
-    sprintf(buff, "Failed to call decode(): %d", err.status);
+    char buff[64];
+    sprintf(buff, "%d", err.status);
     jenv->ThrowNew(clazz, buff);
     return $null;
    }
