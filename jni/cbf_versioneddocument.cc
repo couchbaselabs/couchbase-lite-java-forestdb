@@ -70,6 +70,14 @@ Sequence VersionedDocument::getSequence() const {
 	return _vdoc->sequence();
 }
 
+Slice* VersionedDocument::getDocType() const{
+	return new Slice(_vdoc->docType());
+}
+
+void VersionedDocument::setDocType(Slice& type) {
+	_vdoc->setDocType(*type._slice);
+}
+
 bool VersionedDocument::changed() const {
 	return _vdoc->changed();
 }

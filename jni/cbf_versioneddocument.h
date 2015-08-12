@@ -40,16 +40,25 @@ public:
 	VersionedDocument(KeyStore&, const Document&);
 	~VersionedDocument();
 
+	/** Reads and parses the body of the document. Useful if doc was read as meta-only. */
 	void read();
+	
+	/** Returns false if the document was loaded metadata-only. Revision accessors will fail. */
 	bool revsAvailable() const;
+
 	Slice* getDocID() const;
 	RevID* getRevID() const;
 	Flags getFlags() const;
 	bool isDeleted() const;
 	bool isConflicted() const;
 	bool hasAttachments() const;
+	
 	bool exists() const;
 	Sequence getSequence() const;
+	
+	Slice* getDocType() const;
+	void setDocType(Slice&);
+
 	bool changed() const;
 	void save(Transaction&);
 };
