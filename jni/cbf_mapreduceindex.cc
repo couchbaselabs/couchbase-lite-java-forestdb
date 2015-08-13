@@ -81,7 +81,6 @@ void MapReduceIndexer::InnerMapReduceIndexer::addDocument(
 
 void MapReduceIndexer::InnerMapReduceIndexer::addMappable(
 		const forestdb::Mappable& mappable) {
-	__android_log_write(ANDROID_LOG_WARN, "CBF::MapReduceIndexer::InnerMapReduceIndexer::addMappable()","start");
 	try{
 		forestdb::MapReduceIndexer::addMappable(mappable);
 	}
@@ -93,8 +92,6 @@ void MapReduceIndexer::InnerMapReduceIndexer::addMappable(
 	catch(...){
 		__android_log_write(ANDROID_LOG_WARN, "CBF::MapReduceIndexer::InnerMapReduceIndexer::addMappable()","Unexpected exception indexing");
 	}
-
-	__android_log_write(ANDROID_LOG_WARN, "CBF::MapReduceIndexer::InnerMapReduceIndexer::addMappable()","end");
 }
 
 MapReduceIndexer::MapReduceIndexer() {
@@ -127,9 +124,7 @@ void MapReduceIndexer::bridgeAddDocument(const forestdb::Document& doc) {
 }
 
 void MapReduceIndexer::addMappable(const Mappable& mappable) {
-	__android_log_write(ANDROID_LOG_WARN, "CBF::MapReduceIndexer::addMappable()","start");
 	_mrindexer->addMappable(mappable);
-	__android_log_write(ANDROID_LOG_WARN, "CBF::MapReduceIndexer::addMappable()","end");
 }
 
 }

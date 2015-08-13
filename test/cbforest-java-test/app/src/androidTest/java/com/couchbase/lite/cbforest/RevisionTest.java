@@ -16,7 +16,6 @@ public class RevisionTest extends BaseCBForestTestCase  {
         Slice exp = buff.expanded();
         Log.i(TAG, "exp.getSize() => " + exp.getSize());
         Log.i(TAG, "exp.getBuf() => " + new String(exp.getBuf()));
-
         Log.i(TAG, "expandedSize() => " + buff.expandedSize()); // 34
         Log.i(TAG, "length => " + buff.getBuf().length);        // 17
         Log.i(TAG, new String(buff.getBuf()));                  // 17 chars...

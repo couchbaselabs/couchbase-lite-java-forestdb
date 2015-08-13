@@ -20,7 +20,7 @@ public class MapReduceTest extends BaseCBForestTestCase {
     public static final String TAG = MapReduceTest.class.getSimpleName();
 
     // Object -> JSON string
-    static String obj2json(Object obj){
+    static String obj2json(Object obj) {
         ObjectMapper mapper = new ObjectMapper();
         try {
             return mapper.writeValueAsString(obj);
@@ -31,10 +31,11 @@ public class MapReduceTest extends BaseCBForestTestCase {
     }
 
     // JSON -> Object
-    static Map<String, Object> json2obj(String json){
+    static Map<String, Object> json2obj(String json) {
         ObjectMapper mapper = new ObjectMapper();
         try {
-            return mapper.readValue(json, new TypeReference<Map<String,Object>>(){});
+            return mapper.readValue(json, new TypeReference<Map<String, Object>>() {
+            });
         } catch (Exception e) {
             e.printStackTrace();
             return null;
@@ -43,121 +44,102 @@ public class MapReduceTest extends BaseCBForestTestCase {
 
     public static class TestJSONMappable extends Mappable {
         Map<String, Object> body = null;
+
         public TestJSONMappable(Document doc) {
             super(doc);
 
-            if(doc.deleted())
+            if (doc.deleted())
                 body = null;
-            else{
+            else {
                 String json = new String(doc.getBody().getBuf());
                 Log.i(TAG, json);
                 body = json2obj(json);
-                Log.i(TAG, "body => "+body.toString());
+                Log.i(TAG, "body => " + body.toString());
             }
         }
     }
+
     public static class TestMapFn extends MapFn {
         public static int numMapCalls = 0;
 
         public void call(Mappable mappable, EmitFn emit) {
-            Log.i(TAG, "[TestMapFn.call()] START");
             numMapCalls++;
-            if(mappable instanceof TestJSONMappable)
-                Log.i(TAG, "mappable instanceof TestJSONMappable => true");
-            else
-                Log.i(TAG, "mappable instanceof TestJSONMappable => false");
-            TestJSONMappable testJSONMappable = (TestJSONMappable)mappable;
+            TestJSONMappable testJSONMappable = (TestJSONMappable) mappable;
             Map<String, Object> body = testJSONMappable.body;
-            if(body != null){
+            if (body != null) {
                 Object obj = body.get("cities");
-                Log.i(TAG, "obj => " + obj.toString());
-                if(obj instanceof List){
+                if (obj instanceof List) {
                     @SuppressWarnings("unchecked")
-                    List<String> cities = (List<String>)obj;
-                    for(String city : cities){
-                        Log.i(TAG, "city => " + city);
+                    List<String> cities = (List<String>) obj;
+                    for (String city : cities) {
                         Collatable key = new Collatable();
                         key.add(city);
                         Collatable value = new Collatable();
-                        String name = (String)body.get("name");
-                        Log.i(TAG, "name => " + name);
+                        String name = (String) body.get("name");
                         value.add(name);
-                        Log.i(TAG, "emit.call()");
                         emit.call(key, value);
-                        Log.i(TAG, "emit.call() end");
                     }
                 }
             }
-            Log.i(TAG, "[TestMapFn.call()] END");
         }
     }
 
     public static class TestIndexer extends MapReduceIndexer {
-        public static boolean updateIndex(Database database, MapReduceIndex index){
-            Log.i(TAG, "[TestIndexer.updateIndex()] START");
+        public static boolean updateIndex(Database database, MapReduceIndex index) {
             Transaction trans = new Transaction(database);
             TestIndexer indexer = new TestIndexer();
             indexer.addIndex(index, trans);
             boolean r = indexer.run();
             indexer.delete();
             trans.delete();
-            Log.i(TAG, "[TestIndexer.updateIndex()] END");
             return r;
         }
 
         public void addDocument(Document doc) {
-            Log.i(TAG, "[TestIndexer.addDocument()] START");
             TestJSONMappable mappable = new TestJSONMappable(doc);
             addMappable(mappable);
-            Log.i(TAG, "[TestIndexer.addDocument()] END");
         }
     }
 
-    KeyStore source = null;
-    MapReduceIndex index = null;
+    private KeyStore source = null;
+    private MapReduceIndex index = null;
 
     protected void setUp() throws Exception {
         super.setUp();
+
         source = db;
 
-        File indexFile = new File(mContext.getFilesDir(), dbfilename+"index");
-        Log.i(TAG, "indexFile=" + indexFile);
-        if(indexFile.exists()){
-            if(!indexFile.delete()){
+        File indexFile = new File(mContext.getFilesDir(), DB_FILENAME + "index");
+        if (indexFile.exists()) {
+            if (!indexFile.delete()) {
                 fail();
             }
         }
 
         index = new MapReduceIndex(db, "index", source);
+        assertNotNull(index);
     }
 
     protected void tearDown() throws Exception {
         super.tearDown();
-        if(index != null){
+
+        if (index != null) {
             index.delete();
             index = null;
         }
     }
 
-
     void queryExpectingKeys(List<String> expectedKeys) throws Exception {
-
-
         TestMapFn.numMapCalls = 0;
         assertTrue(TestIndexer.updateIndex(db, index));
-
         int nRows = 0;
-        Log.i(TAG, "create IndexEnumerator START");
         IndexEnumerator e = new IndexEnumerator(index, new Collatable(), new Slice(), new Collatable(), new Slice(), new DocEnumerator.Options());
-        Log.i(TAG, "create IndexEnumerator DONE");
         for (; e.next(); nRows++) {
             String key = new String(e.key().readString().getBuf());
             String docID = new String(e.docID().getBuf());
             Log.i(TAG, String.format("key => %s, docID => %s", key, docID));
             assertEquals(expectedKeys.get(nRows), key);
         }
-
-        Log.i(TAG, "nRows=>" + nRows + " index.rowCount()=>" + index.rowCount().intValue());
         assertEquals(expectedKeys.size(), nRows);
         assertEquals(index.rowCount().intValue(), nRows);
     }
@@ -223,7 +205,6 @@ public class MapReduceTest extends BaseCBForestTestCase {
             body.put("cities", Arrays.asList("Portland", "Walla Walla", "Salem"));
 
             String json = obj2json(body);
-            Log.i(TAG, json);
 
             trans.set(new Slice("OR".getBytes()), new Slice(), new Slice(json.getBytes()));
 
@@ -255,7 +236,7 @@ public class MapReduceTest extends BaseCBForestTestCase {
         mapFn.delete();
     }
 
-    public void testReopen() throws Exception{
+    public void testReopen() throws Exception {
         TestMapFn mapFn = new TestMapFn();
         createDocsAndIndex(mapFn);
 

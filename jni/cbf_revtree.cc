@@ -6,7 +6,7 @@
  */
 
 #include "cbf_revtree.h"
-#include <android/log.h>
+//#include <android/log.h>
 
 namespace CBF {
 

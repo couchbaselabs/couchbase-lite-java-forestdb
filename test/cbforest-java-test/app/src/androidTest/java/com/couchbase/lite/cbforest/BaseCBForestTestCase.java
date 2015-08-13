@@ -12,35 +12,31 @@ public class BaseCBForestTestCase extends AndroidTestCase {
 
     public static final String TAG = BaseCBForestTestCase.class.getSimpleName();
 
+    public static final String DB_FILENAME = "forest_temp.fdb";
+
     /** static constructor */
     static {
-        try{
+        try {
             System.loadLibrary("cbforest");
-        }
-        catch(Exception e){
-            Log.e(TAG, "ERROR: Failed to load libcbforest !!!");
+        } catch (Exception e) {
+            Log.e(TAG, "ERROR: Failed to load libcbforest");
             fail("ERROR: Failed to load libcbforest.");
         }
     }
-
-    public static final String dbfilename = "forest_temp.fdb";
 
     Database db = null;
 
     @Override
     protected void setUp() throws Exception {
-
         super.setUp();
-        File dbFile = new File(mContext.getFilesDir(), dbfilename);
-        Log.i(TAG, "dbFile=" + dbFile);
+
+        File dbFile = new File(mContext.getFilesDir(), DB_FILENAME);
         if (dbFile.exists()) {
             if (!dbFile.delete()) {
                 Log.e(TAG, "ERROR failed to delete: dbFile=" + dbFile);
             }
         }
-        Log.i(TAG, "[setUp()] call Database()");
         db = new Database(dbFile.getPath(), Database.defaultConfig());
-        Log.i(TAG, "[setUp()] db => " + db);
     }
 
     @Override

@@ -9,7 +9,7 @@
 #include "cbf_revid.h"
 
 #include <string.h>
-#include <android/log.h>
+//#include <android/log.h>
 
 namespace CBF {
 
@@ -73,7 +73,6 @@ char* RevID::getBuf() {
 	
 	// NOTE: slice data is sometimes not null stopped. Need to null stop
 	std::string s(slice->getBuf(), slice->getSize());
-	//__android_log_write(ANDROID_LOG_WARN, "cbf::RevID::getBuf()",s.c_str());
 	return (char*)s.c_str();
 }
 

@@ -41,7 +41,7 @@ public class DatabaseTest extends BaseCBForestTestCase {
         tmp_t.delete();
 
         // test with another database instance which points to same database file
-        File dbFile = new File(mContext.getFilesDir(), dbfilename);
+        File dbFile = new File(mContext.getFilesDir(), DB_FILENAME);
         Database aliased_db = new Database(dbFile.getPath(), Database.defaultConfig());
 
         tmp_doc = aliased_db.get(new Slice("a".getBytes()));

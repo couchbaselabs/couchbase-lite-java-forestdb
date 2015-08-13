@@ -76,7 +76,7 @@ public class VersionedDocumentTest extends BaseCBForestTestCase {
         String body = "{\"hello\":true}";
         RevIDBuffer revIDBuf = new RevIDBuffer(new Slice(revID.getBytes()));
         VersionedDocument v = new VersionedDocument(db, new Slice("foo".getBytes()));
-        v.insert(revIDBuf, new Slice(body.getBytes()), false, false, (Revision)null, false);
+        v.insert(revIDBuf, new Slice(body.getBytes()), false, false, (Revision) null, false);
         assertEquals(201, v.getLatestHttpStatus());
         Revision node = v.get(new RevIDBuffer(new Slice(revID.getBytes())));
         assertNotNull(node);
@@ -105,7 +105,7 @@ public class VersionedDocumentTest extends BaseCBForestTestCase {
             //int httpStatus = v.getLatestHttpStatus();
             v.setDocType(new Slice("moose".getBytes()));
             assertEquals("moose", new String(v.getDocType().getBuf()));
-            Transaction t =  new Transaction(db);
+            Transaction t = new Transaction(db);
             v.save(t);
             t.delete();
         }

@@ -2,6 +2,7 @@ package com.couchbase.lite.cbforest;
 
 import android.util.Log;
 
+import java.io.File;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,28 +14,40 @@ import java.util.Map;
  * Created by hideki on 8/13/15.
  */
 public class IndexTest extends BaseCBForestTestCase {
+
     public static final String TAG = IndexTest.class.getSimpleName();
+
     Index index = null;
     BigInteger _rowCount = null;
 
     protected void setUp() throws Exception {
         super.setUp();
+
+        File indexFile = new File(mContext.getFilesDir(), DB_FILENAME + "index");
+        if (indexFile.exists()) {
+            if (!indexFile.delete()) {
+                fail();
+            }
+        }
+
         index = new Index(db, "index");
+        assertNotNull(index);
     }
 
     protected void tearDown() throws Exception {
         super.tearDown();
-        if(index != null){
+        if (index != null) {
             index.delete();
             index = null;
         }
     }
+
     void updateDoc(String docID, List<String> body, IndexWriter writer) throws Exception {
         Log.i(TAG, "updateDoc " + docID + " body=" + Arrays.toString(body.toArray()));
 
         VectorCollatable keys = new VectorCollatable();
         VectorCollatable values = new VectorCollatable();
-        for(int i = 1; i < body.size(); i++){
+        for (int i = 1; i < body.size(); i++) {
             Collatable key = new Collatable();
             key.add(body.get(i));
             keys.add(key);
@@ -57,7 +70,7 @@ public class IndexTest extends BaseCBForestTestCase {
                 new Collatable(), new Slice(),
                 new Collatable(), new Slice(),
                 new DocEnumerator.Options());
-        for ( ; e.next(); nRows++) {
+        for (; e.next(); nRows++) {
             Log.i(TAG, String.format("key = %s, value = %s, docID = %s",
                     new String(e.key().readString().getBuf()),
                     new String(e.value().readString().getBuf()),
@@ -118,7 +131,7 @@ public class IndexTest extends BaseCBForestTestCase {
                 new Collatable(), new Slice(),
                 new Collatable(), new Slice(),
                 options);
-        for ( ; e.next(); nRows++) {
+        for (; e.next(); nRows++) {
             Log.i(TAG, String.format("key = %s, value = %s, docID = %s",
                     new String(e.key().readString().getBuf()),
                     new String(e.value().readString().getBuf()),

@@ -8,7 +8,7 @@ import android.util.Log;
 public class DocumentTest extends BaseCBForestTestCase {
     public static final String TAG = DocumentTest.class.getSimpleName();
 
-    public void test00_Document() {
+    public void testDocument() {
         Document doc = new Document(new Slice("key".getBytes()));
         assertEquals("key", new String(doc.getKey().getBuf()));
         doc.setKey(new Slice("ABCDE".getBytes()));
