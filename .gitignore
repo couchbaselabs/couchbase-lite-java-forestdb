@@ -18,7 +18,7 @@
 *.pch
 
 # Compiled Dynamic libraries
-*.so
+# *.so
 *.dylib
 *.dll
 
@@ -59,7 +59,7 @@
 
 # Shared objects (inc. Windows DLLs)
 *.dll
-*.so
+# *.so
 *.so.*
 *.dylib
 
@@ -80,7 +80,7 @@
 .mtj.tmp/
 
 # Package Files #
-*.jar
+#*.jar
 *.war
 *.ear
 
@@ -93,9 +93,9 @@ hs_err_pid*
 ###################################
 jni/cbforest_wrap.cc
 jni/cbforest_wrap.h
-libs/
+# libs/
 obj/
-src/
+# src/
 classes/
-copy.sh
+# copy.sh
 
