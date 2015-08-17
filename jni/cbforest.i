@@ -123,6 +123,18 @@
     return $null;
    }
 }
+// KeyStore
+%javaexception("java.lang.Exception") KeyStore {
+  try {
+     $action
+  } catch (forestdb::error err) {
+    jclass clazz = jenv->FindClass("java/lang/Exception");
+    char buff[64];
+    sprintf(buff, "%d", err.status);
+    jenv->ThrowNew(clazz, buff);
+    return $null;
+   }
+}
 // Database
 %javaexception("java.lang.Exception") Database {
   try {
@@ -459,15 +471,3 @@ import java.lang.ref.WeakReference;
 %include "cbf_collatable.h"
 %include "cbf_index.h"
 %include "cbf_mapreduceindex.h"
-
-
-
-
-
-
-
-
-
-
-
-

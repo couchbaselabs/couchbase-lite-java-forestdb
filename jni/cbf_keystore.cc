@@ -9,10 +9,31 @@
 #include "cbf_keystore.h"
 #include "cbf_database.h"
 
+#include <android/log.h>
+ 
 /**
  * KeyStore - implementation
  */
 namespace CBF {
+
+KeyStore::KeyStore(){
+	__android_log_write(ANDROID_LOG_WARN, "KeyStore::KeyStore()","start");
+	_keyStore = NULL;
+}
+
+KeyStore::KeyStore(Database& db, std::string name){
+	__android_log_write(ANDROID_LOG_WARN, "KeyStore::KeyStore(Database&, std::string)","start");
+	_keyStore = new forestdb::KeyStore(db._db, name);
+	__android_log_write(ANDROID_LOG_WARN, "KeyStore::KeyStore(Database&, std::string)","end");
+}
+
+KeyStore::~KeyStore()
+{
+	if (_keyStore != NULL) {
+		delete _keyStore;
+		_keyStore = NULL;
+	}
+}
 
 KvsInfo KeyStore::getKvsInfo() const {
 	return getKeyStore()->getInfo();
@@ -62,6 +83,11 @@ void KeyStore::erase(Transaction& t) {
 /**
  * KeyStoreWriter - implementation
  */
+
+KeyStoreWriter::KeyStoreWriter(KeyStore& s, forestdb::Transaction& t){
+	_keyStoreWriter = new forestdb::KeyStoreWriter(*s.getKeyStore(), t);
+}
+
 Sequence KeyStoreWriter::set(Slice& key, Slice& meta, Slice& value) {
 	return getKeyStoreWriter()->set(*key._slice, *meta._slice, *value._slice);
 }

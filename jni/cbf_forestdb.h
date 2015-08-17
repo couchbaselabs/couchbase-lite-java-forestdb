@@ -33,6 +33,10 @@ enum OpenFlags {
 struct KvsInfo: public fdb_kvs_info {
 	KvsInfo() { }
 	KvsInfo(const fdb_kvs_info& info) : fdb_kvs_info(info) { }
+	const char* getName(){ return name; }
+	uint64_t getLastSeqnum(){ return last_seqnum; }
+	uint64_t getDocCount(){ return doc_count; }
+	uint64_t getSpaceUsed(){ return space_used; }
 };
 
 struct FileInfo: public fdb_file_info {

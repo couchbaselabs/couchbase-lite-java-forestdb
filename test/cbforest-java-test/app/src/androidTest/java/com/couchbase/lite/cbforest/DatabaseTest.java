@@ -94,4 +94,60 @@ public class DatabaseTest extends BaseCBForestTestCase {
 
         aliased_db.delete();
     }
+
+    public void test08_KeyStoreInfo() throws Exception {
+        KeyStore s = new KeyStore(db, "store");
+        assertEquals(0, s.getLastSequence().intValue());
+        assertEquals("store", s.getName());
+
+        KvsInfo info = s.getKvsInfo();
+        assertEquals(0, info.getDocCount().intValue());
+        assertEquals(0, info.getSpaceUsed().intValue());
+        assertEquals(0, info.getLastSeqnum().intValue());
+        assertEquals("store", info.getName());
+
+        s.delete();
+    }
+
+    public void test09_KeyStoreWrite() throws Exception {
+        KeyStore s = new KeyStore(db, "store");
+
+        Slice key = new Slice("key".getBytes());
+        {
+            Transaction t = new Transaction(db);
+            KeyStoreWriter writer = t.toKeyStoreWriter(s);
+            writer.set(key, new Slice("value".getBytes()));
+            writer.delete();
+            t.delete();
+        }
+        assertEquals(1, s.getLastSequence().intValue());
+        Document doc = s.get(key);
+        assertTrue(doc.getKey().compare(key) == 0);
+        assertTrue(doc.getBody().compare(new Slice("value".getBytes())) == 0);
+        doc.delete();
+
+        Document doc2 = db.get(key);
+        assertFalse(doc2.exists());
+        doc2.delete();
+
+        s.delete();
+    }
+
+    public void test10_KeyStoreDelete() throws Exception {
+        KeyStore s = new KeyStore(db, "store");
+
+        Slice key = new Slice("key".getBytes());
+        {
+            Transaction t = new Transaction(db);
+            s.erase(t);
+            t.delete();
+        }
+        assertEquals(0, s.getLastSequence().intValue());
+
+        Document doc = s.get(key);
+        assertFalse(doc.exists());
+        doc.delete();
+
+        s.delete();
+    }
 }

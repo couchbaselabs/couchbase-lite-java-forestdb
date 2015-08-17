@@ -27,7 +27,7 @@ namespace CBF {
  */
 class Database : public KeyStore {
 private:
-	forestdb::Database *_db;
+	friend class KeyStore;
 	friend class Transaction;
 	friend class DocEnumerator;
 	friend class VersionedDocument;
@@ -35,6 +35,8 @@ private:
 	friend class Index;
 
 protected:
+	forestdb::Database *_db;
+
 	virtual forestdb::KeyStore* getKeyStore() const { return _db; }
 
 public:
@@ -87,6 +89,8 @@ public:
 	Transaction(Database* db);
 	virtual ~Transaction();
 
+
+	KeyStoreWriter* toKeyStoreWriter(KeyStore& s){ return new KeyStoreWriter(s, *_trans); }
 
 	Database *getDatabase();
 	State state() const;

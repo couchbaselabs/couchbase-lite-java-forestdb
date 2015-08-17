@@ -24,15 +24,25 @@ namespace CBF {
  */
 class KeyStore {
 private:
-    	friend class DocEnumerator;
-    	friend class MapReduceIndex;
-    	friend class VersionedDocument;
-protected:
-    virtual forestdb::KeyStore* getKeyStore() const = 0;
-    KeyStore(){} // no allow to create KeyStore instance
+	friend class DocEnumerator;
+	friend class MapReduceIndex;
+	friend class VersionedDocument;
+	friend class KeyStoreWriter;
 
+protected:
+	forestdb::KeyStore * _keyStore;
+
+	// SWIG won't generate wrappers for a class if it appears to be abstract--that is,
+	// it has undefined pure virtual methods.
+    //virtual forestdb::KeyStore* getKeyStore() const = 0;
+    virtual forestdb::KeyStore* getKeyStore() const { return _keyStore; }
+    
+    KeyStore();
 public:
-    virtual ~KeyStore(){}
+	
+	KeyStore(Database& db, std::string name);
+    virtual ~KeyStore();
+
 
 	KvsInfo getKvsInfo() const;
 	Sequence getLastSequence() const;
@@ -54,11 +64,15 @@ public:
 class KeyStoreWriter : public KeyStore {
 
 protected:
-	virtual forestdb::KeyStoreWriter* getKeyStoreWriter() const = 0;
+	forestdb::KeyStoreWriter * _keyStoreWriter;
+	
+	//virtual forestdb::KeyStoreWriter* getKeyStoreWriter() const = 0;
+	virtual forestdb::KeyStoreWriter* getKeyStoreWriter() const { return _keyStoreWriter; }
 
-	KeyStoreWriter(){} // no allow to create KeyStoreWriter instance
-
+	KeyStoreWriter(){ _keyStoreWriter = NULL; }
+	
 public:
+	KeyStoreWriter(KeyStore&, forestdb::Transaction&);
 	virtual ~KeyStoreWriter(){}
 
 	Sequence set(Slice&, Slice&, Slice&);
