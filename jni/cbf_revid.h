@@ -28,6 +28,7 @@ private:
 	friend class RevTree;
 	friend class VersionedDocument;
 	friend class RevIDBuffer;
+	char * buffer;
 
 public:
 	RevID();

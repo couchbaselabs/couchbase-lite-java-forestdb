@@ -9,7 +9,7 @@
 #include "cbf_revid.h"
 
 #include <string.h>
-//#include <android/log.h>
+#include <android/log.h>
 
 namespace CBF {
 
@@ -18,6 +18,7 @@ namespace CBF {
  */
 RevID::RevID() {
 	_slice = _revid = new forestdb::revid();
+	buffer = NULL;
 }
 
 RevID::RevID(const char* b, size_t s) {
@@ -72,8 +73,17 @@ char* RevID::getBuf() {
 	bufSize = slice->getSize();
 	
 	// NOTE: slice data is sometimes not null stopped. Need to null stop
-	std::string s(slice->getBuf(), slice->getSize());
-	return (char*)s.c_str();
+	//std::string s(slice->getBuf(), slice->getSize());
+	buffer = (char*)malloc(slice->getSize()+1);
+	memset(buffer, 0, slice->getSize()+1);
+	memcpy(buffer, slice->getBuf(), slice->getSize());
+
+	//char buff[1024];
+	//sprintf(buff, "s.c_str()=[%s] slice.size=%d bufSize=%d", s.c_str(), slice->getSize(), bufSize);
+	__android_log_write(ANDROID_LOG_WARN, "RevID::getBuf()",buffer);
+
+	//return (char*)s.c_str();
+	return buffer;
 }
 
 void RevID::init(const char* b, size_t s) {
@@ -90,6 +100,7 @@ void RevID::init(const char* b, size_t s) {
 	}
 
 	bufSize = 0;
+	buffer = NULL;
 }
 
 void RevID::releaseData() {
@@ -102,6 +113,11 @@ void RevID::releaseData() {
 		}
 		delete _revid;
 		_slice = _revid = NULL;
+	}
+
+	if(buffer != NULL){
+		::free((void*)buffer);
+		buffer = NULL;
 	}
 }
 
