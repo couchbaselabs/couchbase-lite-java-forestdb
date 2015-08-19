@@ -50,7 +50,7 @@ bool Revision::isDeleted() const {
 }
 
 bool Revision::hasAttachments() const {
-	return _revision->isDeleted();
+	return _revision->hasAttachments();
 }
 
 bool Revision::isNew() const {
