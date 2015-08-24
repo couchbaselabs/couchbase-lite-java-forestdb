@@ -133,7 +133,10 @@ public class MapReduceTest extends BaseCBForestTestCase {
         TestMapFn.numMapCalls = 0;
         assertTrue(TestIndexer.updateIndex(db, index));
         int nRows = 0;
-        IndexEnumerator e = new IndexEnumerator(index, new Collatable(), new Slice(), new Collatable(), new Slice(), new DocEnumerator.Options());
+        IndexEnumerator e = new IndexEnumerator(index,
+                new Collatable(), new Slice(),
+                new Collatable(), new Slice(),
+                new DocEnumerator.Options());
         for (; e.next(); nRows++) {
             String key = new String(e.key().readString().getBuf());
             String docID = new String(e.docID().getBuf());
@@ -192,8 +195,9 @@ public class MapReduceTest extends BaseCBForestTestCase {
 
         Log.i(TAG, "--- First query");
         TestMapFn.numMapCalls = 0;
-        this.queryExpectingKeys(Arrays.asList("Cambria", "Eugene", "Port Townsend", "Portland",
-                "San Francisco", "San Jose", "Seattle", "Skookumchuk"));
+        this.queryExpectingKeys(Arrays.asList(
+                "Cambria", "Eugene", "Port Townsend", "Portland", "San Francisco",
+                "San Jose", "Seattle", "Skookumchuk"));
         assertEquals(3, TestMapFn.numMapCalls);
 
         Log.i(TAG, "--- Updating OR");
@@ -210,7 +214,9 @@ public class MapReduceTest extends BaseCBForestTestCase {
 
             trans.delete();
         }
-        this.queryExpectingKeys(Arrays.asList("Cambria", "Port Townsend", "Portland", "Salem", "San Francisco", "San Jose", "Seattle", "Skookumchuk", "Walla Walla"));
+        this.queryExpectingKeys(Arrays.asList(
+                "Cambria", "Port Townsend", "Portland", "Salem", "San Francisco",
+                "San Jose", "Seattle", "Skookumchuk", "Walla Walla"));
         assertEquals(1, TestMapFn.numMapCalls);
 
         Log.i(TAG, "--- Deleting CA");
@@ -219,7 +225,8 @@ public class MapReduceTest extends BaseCBForestTestCase {
             trans.del(new Slice("CA".getBytes()));
             trans.delete();
         }
-        this.queryExpectingKeys(Arrays.asList("Port Townsend", "Portland", "Salem", "Seattle", "Skookumchuk", "Walla Walla"));
+        this.queryExpectingKeys(Arrays.asList(
+                "Port Townsend", "Portland", "Salem", "Seattle", "Skookumchuk", "Walla Walla"));
         assertEquals(0, TestMapFn.numMapCalls);
 
         Log.i(TAG, "--- Updating version");
@@ -229,7 +236,8 @@ public class MapReduceTest extends BaseCBForestTestCase {
             index.setup(trans, 0, mapFn2, "2");
             trans.delete();
         }
-        this.queryExpectingKeys(Arrays.asList("Port Townsend", "Portland", "Salem", "Seattle", "Skookumchuk", "Walla Walla"));
+        this.queryExpectingKeys(Arrays.asList(
+                "Port Townsend", "Portland", "Salem", "Seattle", "Skookumchuk", "Walla Walla"));
         assertEquals(2, TestMapFn.numMapCalls);
 
         mapFn2.delete();

@@ -86,5 +86,29 @@ void VersionedDocument::save(Transaction& transaction) {
 	_vdoc->save(*transaction._trans);
 }
 
+Slice* VersionedDocument::docTypeOfDocument(const Document& doc) {
+	forestdb::slice meta = doc._doc->meta();
+
+	if(meta.size < 2)
+		return NULL;
+	if (meta.size > 0) {
+		uint64_t docTypeLength;
+		if (!forestdb::ReadUVarInt(&meta, &docTypeLength))
+			return NULL;
+		forestdb::slice docType = meta.read((size_t)docTypeLength);
+		return new Slice(docType);
+	} else {
+		return NULL;
+	}
+}
+/** Gets the flags from a document without having to instantiate a VersionedDocument */
+VersionedDocument::Flags VersionedDocument::flagsOfDocument(const Document& doc) {
+	forestdb::slice meta = doc._doc->meta();
+	if(meta.size < 2)
+		return 0;
+	return meta.read(1)[0];
+}
+
+
 }
 

@@ -56,8 +56,11 @@ void Slice::free(){
 }
 
 // Return the length (in bytes) of the referenced data
-const size_t Slice::getSize() {
-	return _slice->size;
+const int Slice::getSize() {
+	return (const int)_slice->size;
+}
+const void* Slice::getData(){
+	return _slice->buf;
 }
 
 void Slice::releaseData() {

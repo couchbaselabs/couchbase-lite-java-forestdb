@@ -8,6 +8,7 @@
 %module(directors="1") cbforest
 
 // for uint8, uint16, uint32 and uint64
+%include "cdata.i"
 %include "stdint.i"
 %include "std_string.i"
 %include "std_shared_ptr.i"

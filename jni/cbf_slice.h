@@ -55,8 +55,10 @@ public:
 	int compare(Slice&) ;
 	Slice* copy();
 	void free();
+
 	// Return the length (in bytes) of the referenced data
-	const size_t getSize();
+	const int getSize();
+	const void* getData();
 
 private:
 	// keep own memory because we don't know when original data is released.

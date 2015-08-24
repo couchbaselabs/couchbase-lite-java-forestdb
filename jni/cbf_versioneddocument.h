@@ -8,6 +8,7 @@
 #ifndef CBF_VERSIONEDDOCUMENT_H_
 #define CBF_VERSIONEDDOCUMENT_H_
 
+#include "varint.hh"
 #include "VersionedDocument.hh"
 
 #include "cbf_forestdb.h"
@@ -61,6 +62,9 @@ public:
 
 	bool changed() const;
 	void save(Transaction&);
+
+	static Flags  flagsOfDocument(const Document&);
+	static Slice* docTypeOfDocument(const Document&);
 };
 
 }
