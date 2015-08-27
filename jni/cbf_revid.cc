@@ -72,17 +72,10 @@ char* RevID::getBuf() {
 	Slice* slice = expanded();
 	bufSize = slice->getSize();
 	
-	// NOTE: slice data is sometimes not null stopped. Need to null stop
-	//std::string s(slice->getBuf(), slice->getSize());
 	buffer = (char*)malloc(slice->getSize()+1);
 	memset(buffer, 0, slice->getSize()+1);
 	memcpy(buffer, slice->getBuf(), slice->getSize());
 
-	//char buff[1024];
-	//sprintf(buff, "s.c_str()=[%s] slice.size=%d bufSize=%d", s.c_str(), slice->getSize(), bufSize);
-	__android_log_write(ANDROID_LOG_WARN, "RevID::getBuf()",buffer);
-
-	//return (char*)s.c_str();
 	return buffer;
 }
 
@@ -90,11 +83,9 @@ void RevID::init(const char* b, size_t s) {
 	if (b == NULL) {
 		_revid = new forestdb::revid(NULL, 0);
 	} else {
-		//char* tmp = new char[s + 1];
 		void* tmp = ::malloc(s);
 		if (tmp != NULL) {
 			memcpy(tmp, b, s);
-			//tmp[s] = '\0';
 			_slice = _revid = new forestdb::revid(tmp, s);
 		}
 	}
@@ -106,7 +97,6 @@ void RevID::init(const char* b, size_t s) {
 void RevID::releaseData() {
 	if (_revid != NULL) {
 		if (_revid->buf != NULL) {
-			//delete[] (char*) _revid->buf;
 			::free((void*)_revid->buf);
 			_revid->buf = NULL;
 			_revid->size = 0;

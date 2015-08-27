@@ -14,6 +14,23 @@ namespace CBF {
 
 class Slice;
 
+class CollatableTypes {
+    public:
+	typedef enum {
+		kEndSequence = 0,   // Returned to indicate the end of an array/dict
+		kNull,
+		kFalse,
+		kTrue,
+		kNegative,
+		kPositive,
+		kString,
+		kArray,
+		kMap,
+		kSpecial,
+		kError = 255        // Something went wrong...
+	} Tag;
+};
+
 /**
  * Collatable - wrapper class of forestdb::Collatable
  */
