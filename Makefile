@@ -1,9 +1,15 @@
 all: clean swig ndk-build jar
 
+
+
+JNI_SRC_DIR=./jni
+JNI_JAVA_PACKAGE_DIR=./src/main/java/com/couchbase/lite/cbforest
+JNI_JAVA_PACKAGE=com.couchbase.lite.cbforest
+
 clean:
-	rm -rf src
-	rm -rf jni/cbforest_wrap.h
-	rm -rf jni/cbforest_wrap.cc
+	rm -rf $(JNI_JAVA_PACKAGE_DIR)
+	rm -rf $(JNI_SRC_DIR)/cbforest_wrap.h
+	rm -rf $(JNI_SRC_DIR)/cbforest_wrap.cc
 	rm -rf libs
 	rm -rf obj
 	rm -rf classes
@@ -12,16 +18,17 @@ clean:
 
 # SWIG: Generate JNI java binding codes and Native (C/C++) binding codes fro cbforest.i and C/C++ header files
 swig:
-	rm -rf src/com/couchbase/lite/cbforest
-	mkdir -p src/com/couchbase/lite/cbforest
+	rm -rf $(JNI_SRC_DIR)/cbforest_wrap.cc
+	rm -rf $(JNI_JAVA_PACKAGE_DIR)
+	mkdir -p $(JNI_JAVA_PACKAGE_DIR)
 	swig -Wall -c++ -java \
 		-I./vendor/cbforest/vendor/forestdb/include \
 		-I./vendor/cbforest/vendor/forestdb/include/libforestdb \
 		-I./vendor/cbforest/CBForest \
-		-package com.couchbase.lite.cbforest \
-		-outdir ./src/com/couchbase/lite/cbforest \
-		-o ./jni/cbforest_wrap.cc \
-		./jni/cbforest.i
+		-package $(JNI_JAVA_PACKAGE) \
+		-outdir $(JNI_JAVA_PACKAGE_DIR) \
+		-o $(JNI_SRC_DIR)/cbforest_wrap.cc \
+		$(JNI_SRC_DIR)/cbforest.i
 
 # Build native liberary by NDK
 # NOTE: please modify ndk-build command path below!!
