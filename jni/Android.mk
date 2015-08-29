@@ -63,13 +63,12 @@ LOCAL_SRC_FILES :=	$(SQLITE3_PATH)/fts3_unicode2.c \
 					$(FORESTDB_PATH)/utils/adler32.cc \
 					$(FORESTDB_PATH)/utils/crc32.cc \
 					$(FORESTDB_PATH)/utils/debug.cc \
-					$(FORESTDB_PATH)/utils/get_memory_size.cc \
 					$(FORESTDB_PATH)/utils/iniparser.cc \
 					$(FORESTDB_PATH)/utils/memleak.cc \
 					$(FORESTDB_PATH)/utils/partiallock.cc \
+					$(FORESTDB_PATH)/utils/system_resource_stats.cc \
 					$(FORESTDB_PATH)/utils/time_utils.cc \
 					$(FORESTDB_PATH)/src/api_wrapper.cc \
-					$(FORESTDB_PATH)/src/atomic.cc \
 					$(FORESTDB_PATH)/src/avltree.cc \
 					$(FORESTDB_PATH)/src/blockcache.cc \
 					$(FORESTDB_PATH)/src/btree.cc \
