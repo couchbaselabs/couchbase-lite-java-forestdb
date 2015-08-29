@@ -60,7 +60,6 @@ LOCAL_SRC_FILES :=	$(SQLITE3_PATH)/fts3_unicode2.c \
 					$(SQLITE3_PATH)/libstemmer_c/runtime/utilities_sq3.c \
 					$(SQLITE3_PATH)/libstemmer_c/src_c/stem_UTF_8_english.c \
 					$(SQLITE3_PATH)/libstemmer_c/src_c/stem_ISO_8859_1_english.c \
-					$(FORESTDB_PATH)/utils/adler32.cc \
 					$(FORESTDB_PATH)/utils/crc32.cc \
 					$(FORESTDB_PATH)/utils/debug.cc \
 					$(FORESTDB_PATH)/utils/iniparser.cc \
@@ -76,6 +75,7 @@ LOCAL_SRC_FILES :=	$(SQLITE3_PATH)/fts3_unicode2.c \
 					$(FORESTDB_PATH)/src/btree_kv.cc \
 					$(FORESTDB_PATH)/src/btree_str_kv.cc \
 					$(FORESTDB_PATH)/src/btreeblock.cc \
+					$(FORESTDB_PATH)/src/checksum.cc \
 					$(FORESTDB_PATH)/src/compactor.cc \
 					$(FORESTDB_PATH)/src/configuration.cc \
 					$(FORESTDB_PATH)/src/docio.cc \
