@@ -11,13 +11,14 @@ $ cd cbforest-java
 $ git submodule update --init --recursive
 ```
 #### Prerequisites
-* Install [SWIG](http://www.swig.org/)  -- Optional
+* 1. Install [SWIG](http://www.swig.org/)  -- Optional: This is required if you want to generate JNI interface files (C/C++/Java) from SWIG interface file.
 
 If you are using Mac OSX
 ```
 $ brew install swig
 ```
-* Install [Android NDK](https://developer.android.com/tools/sdk/ndk/index.html) version r10c
+
+* 2. Install [Android NDK](https://developer.android.com/tools/sdk/ndk/index.html) version r10c
 
 Note: Please add ANDROID SDK and NDK home directories in the envronment PATH
 ```
