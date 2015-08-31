@@ -72,9 +72,10 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    //compile 'com.android.support:appcompat-v7:22.0.0'
+    compile project(':libraries:couchbase-lite-java-core')
     androidTestCompile 'com.fasterxml.jackson.core:jackson-databind:2.6.0'
     androidTestCompile 'com.fasterxml.jackson.core:jackson-core:2.6.0'
     androidTestCompile 'com.fasterxml.jackson.core:jackson-annotations:2.6.0'
+
 }
 
