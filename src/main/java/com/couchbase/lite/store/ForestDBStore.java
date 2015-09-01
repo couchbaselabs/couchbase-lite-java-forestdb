@@ -657,7 +657,7 @@ public class ForestDBStore implements Store {
 
                 VersionedDocument doc = new VersionedDocument(forest, d);
 
-                // Currently cbforest-java wrapper does not support VersionedDocument::readMeta()
+                // Currently cbforest wrapper does not support VersionedDocument::readMeta()
                 // This is reason that creating VersionedDocument instance always.
                 boolean deleted = false;
                 {

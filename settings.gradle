@@ -1,1 +1,1 @@
-include ':cbforest-java', ':libraries:couchbase-lite-java-core'
+include ':couchbase-lite-java-forestdb', ':libraries:couchbase-lite-java-core'
