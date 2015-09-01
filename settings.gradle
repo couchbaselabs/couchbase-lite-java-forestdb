@@ -1,0 +1,1 @@
+include ':cbforest-java', ':libraries:couchbase-lite-java-core'
