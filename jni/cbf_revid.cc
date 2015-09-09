@@ -9,7 +9,6 @@
 #include "cbf_revid.h"
 
 #include <string.h>
-#include <android/log.h>
 
 namespace CBF {
 
