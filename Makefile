@@ -1,7 +1,5 @@
 all: clean swig ndk-build jar
 
-
-
 JNI_SRC_DIR=./jni
 JNI_JAVA_PACKAGE_DIR=./src/main/java/com/couchbase/lite/cbforest
 JNI_JAVA_PACKAGE=com.couchbase.lite.cbforest
@@ -39,5 +37,5 @@ ndk-build:
 # compile JNI java binding code and make Jar file
 jar:
 	mkdir -p ./classes
-	javac -source 1.7 -target 1.7 -d ./classes ./src/com/couchbase/lite/cbforest/*.java
+	javac -source 1.7 -target 1.7 -d ./classes ./src/main/java/com/couchbase/lite/cbforest/*.java
 	jar -cf cbforest.jar -C classes/ .
