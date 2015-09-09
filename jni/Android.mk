@@ -8,12 +8,14 @@ LOCAL_MODULE	:=	cbforest
 FORESTDB_PATH   :=  $(LOCAL_PATH)/../vendor/cbforest/vendor/forestdb
 SNAPPY_PATH     :=  $(LOCAL_PATH)/../vendor/cbforest/vendor/snappy
 SQLITE3_PATH   	:=  $(LOCAL_PATH)/../vendor/cbforest/vendor/sqlite3-unicodesn
+SQLITE_INC_PATH :=  $(LOCAL_PATH)/../vendor/sqlite
 CBFOREST_PATH   :=  $(LOCAL_PATH)/../vendor/cbforest/CBForest
 
 
 LOCAL_CFLAGS    :=  -I$(SQLITE3_PATH)/libstemmer_c/runtime/ \
 					-I$(SQLITE3_PATH)/libstemmer_c/src_c/ \
-					-I$(SQLITE3_PATH)/
+					-I$(SQLITE3_PATH)/ \
+					-I$(SQLITE_INC_PATH)/
 
 # For sqlite3-unicodesn
 LOCAL_CFLAGS	+=	-DSQLITE_ENABLE_FTS4 \
