@@ -30,17 +30,22 @@ export PATH=$ANDROID_HOME/tools:$ANDROID_HOME/platform-tools:$PATH
 
 ### Build by Gradle
 
-#### How to generate the AAR file
+#### How to generate the AAR file for Android
 ```
-$ ./gradlew assemble
+$ ./gradlew -Pspec=android  assemble
 $ cd build/outputs/aar
 ```
-#### Run UnitTest
+#### Run UnitTest for Android
 ```
-$ ./gradlew connectedAndroidTest --debug
+$ ./gradlew  -Pspec=android connectedAndroidTest --debug
+```
+#### How to generate the Jar file for Java Desktop
+```
+$ ./gradlew -Pspec=java assemble
+$ cd build/libs
 ```
 
-### Build by make
+### Build cbforest by make for Android platform
 
 #### Generate JNI java and native (C/C++) binding codes by SWIG
 ```
@@ -55,7 +60,6 @@ $ make ndk-build
 ```
 $ make jar
 ```
-
 #### Outcome 
 * cbforest.jar
 * libs/[platform]/libcbforest.so
