@@ -36,6 +36,8 @@ import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.support.RevisionUtils;
 import com.couchbase.lite.util.Log;
 
+import com.couchbase.lite.util.NativeLibUtils;
+
 import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -49,6 +51,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+
+
 /**
  * Created by hideki on 8/13/15.
  */
@@ -56,12 +60,14 @@ public class ForestDBStore implements Store {
 
     public static String TAG = Log.TAG_DATABASE;
 
+    private final static String NATIVE_LIB_NAME = "CouchbaseLiteJavaForestDB";
     /** static constructor */
     static {
         try {
-            System.loadLibrary("cbforest");
-        } catch (Exception e) {
-            Log.e(TAG, "ERROR: Failed to load libcbforest");
+            System.loadLibrary(NATIVE_LIB_NAME);
+        } catch (UnsatisfiedLinkError e) {
+            if(!NativeLibUtils.loadLibrary(NATIVE_LIB_NAME))
+                Log.e(TAG, "ERROR: Failed to load %s", NATIVE_LIB_NAME);
         }
     }
 
@@ -420,7 +426,7 @@ public class ForestDBStore implements Store {
             String docId = rev.getDocID();
             String revId = rev.getRevID();
             VersionedDocument doc = new VersionedDocument(forest, new Slice(docId.getBytes()));
-            com.couchbase.lite.cbforest.Revision revision = doc.get(new RevIDBuffer(new Slice(revId.getBytes())));
+            Revision revision = doc.get(new RevIDBuffer(new Slice(revId.getBytes())));
             List<RevisionInternal> history = ForestBridge.getRevisionHistory(docId, revision);
             doc.delete();
             return history;
@@ -450,7 +456,7 @@ public class ForestDBStore implements Store {
             revNodes = doc.allRevisions();
 
         for(int i = 0; i < revNodes.size(); i++){
-            com.couchbase.lite.cbforest.Revision revNode = revNodes.get(i);
+            Revision revNode = revNodes.get(i);
             RevisionInternal rev = new RevisionInternal(docID, new String(revNode.getRevID().getBuf()), revNode.isDeleted());
             revs.add(rev);
         }
@@ -827,7 +833,7 @@ public class ForestDBStore implements Store {
             String docID = inDocID;
             String prevRevID = inPrevRevID;
 
-            com.couchbase.lite.cbforest.Document rawDoc = new com.couchbase.lite.cbforest.Document();
+            Document rawDoc = new Document();
             if (docID != null && !docID.isEmpty()) {
                 // Read the doc from the database:
                 rawDoc.setKey(new Slice(docID.getBytes()));
@@ -848,7 +854,7 @@ public class ForestDBStore implements Store {
 
             // Parse the document revision tree:
             VersionedDocument doc = new VersionedDocument(forest, rawDoc);
-            com.couchbase.lite.cbforest.Revision revNode;
+            Revision revNode;
 
             if (prevRevID != null) {
                 // Updating an existing revision; make sure it exists and is a leaf:
@@ -920,7 +926,7 @@ public class ForestDBStore implements Store {
             {
                 // TODO - add new RevIDBuffer(String)
                 // TODO - add RevTree.insert(String, String, boolean, boolean, RevID arg4, boolean)
-                com.couchbase.lite.cbforest.Revision fdbRev = doc.insert(
+                Revision fdbRev = doc.insert(
                         newrevid,
                         new Slice(json),
                         deleting,
@@ -1245,7 +1251,7 @@ public class ForestDBStore implements Store {
         if(isWinningRev)
             winningRevID = inRev.getRevID();
         else{
-            com.couchbase.lite.cbforest.Revision winningRevision = doc.currentRevision();
+            Revision winningRevision = doc.currentRevision();
             winningRevID = new String(winningRevision.getRevID().getBuf());
         }
         return new DocumentChange(inRev, winningRevID, doc.hasConflict(), source);

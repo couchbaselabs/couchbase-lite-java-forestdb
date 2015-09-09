@@ -1,0 +1,277 @@
+apply plugin: "c"
+apply plugin: "cpp"
+apply plugin: "java"
+apply plugin: "maven"
+
+version = System.getenv("MAVEN_UPLOAD_VERSION")
+
+model {
+    platforms {
+        osx_x86 {
+            architecture "x86"
+            operatingSystem "osx"
+        }
+        osx_x86_64 {
+            architecture "x86_64"
+            operatingSystem "osx"
+        }
+        linux_x86 {
+            architecture "x86"
+            operatingSystem "linux"
+        }
+        linux_x86_64 {
+            architecture "x86_64"
+            operatingSystem "linux"
+        }
+        windows_x86 {
+            architecture "x86"
+            operatingSystem "windows"
+        }
+        windows_x86_64 {
+            architecture "x86_64"
+            operatingSystem "windows"
+        }
+    }
+
+    toolChains {
+        clang(Clang)
+        visualCpp(VisualCpp)
+        gcc(Gcc)
+    }
+
+    components {
+        Tokenizer(NativeLibrarySpec) {
+            sources {
+                c {
+                    source {
+                        srcDir "vendor/cbforest/vendor/sqlite3-unicodesn"
+                        include "fts3_unicode2.c",
+                                "fts3_unicodesn.c",
+                                "libstemmer_c/runtime/api_sq3.c",
+                                "libstemmer_c/runtime/utilities_sq3.c",
+                                "libstemmer_c/src_c/stem_UTF_8_english.c",
+                                "libstemmer_c/src_c/stem_ISO_8859_1_english.c"
+                    }
+                    exportedHeaders {
+                        srcDirs "vendor/cbforest/vendor/sqlite3-unicodesn/libstemmer_c/runtime",
+                                "vendor/cbforest/vendor/sqlite3-unicodesn/libstemmer_c/src_c",
+                                "vendor/cbforest/vendor/sqlite3-unicodesn"
+                    }
+                }
+            }
+            binaries.withType(StaticLibraryBinary) {
+                cCompiler.args "-Wformat-security",
+                        "-Wmissing-declarations",
+                        "-Woverriding-method-mismatch",
+                        "-Wbool-conversion",
+                        "-Wno-arc-retain-cycles",
+                        "-std=gnu99",
+                        "-DSQLITE_ENABLE_FTS4",
+                        "-DSQLITE_ENABLE_FTS4_UNICODE61",
+                        "-DWITH_STEMMER_english"
+            }
+            binaries.withType(SharedLibraryBinary) { binary ->
+                buildable = false
+            }
+        }
+
+        CouchbaseLiteJavaForestDB(NativeLibrarySpec) {
+            sources {
+                cpp {
+                    lib library: 'Tokenizer', linkage: 'static'
+                    source {
+                        srcDir "."
+                        include "vendor/cbforest/vendor/forestdb/utils/crc32.cc",
+                                "vendor/cbforest/vendor/forestdb/utils/debug.cc",
+                                "vendor/cbforest/vendor/forestdb/utils/iniparser.cc",
+                                "vendor/cbforest/vendor/forestdb/utils/memleak.cc",
+                                "vendor/cbforest/vendor/forestdb/utils/partiallock.cc",
+                                "vendor/cbforest/vendor/forestdb/utils/system_resource_stats.cc",
+                                "vendor/cbforest/vendor/forestdb/utils/time_utils.cc",
+                                "vendor/cbforest/vendor/forestdb/src/api_wrapper.cc",
+                                "vendor/cbforest/vendor/forestdb/src/avltree.cc",
+                                "vendor/cbforest/vendor/forestdb/src/blockcache.cc",
+                                "vendor/cbforest/vendor/forestdb/src/btree.cc",
+                                "vendor/cbforest/vendor/forestdb/src/btree_fast_str_kv.cc",
+                                "vendor/cbforest/vendor/forestdb/src/btree_kv.cc",
+                                "vendor/cbforest/vendor/forestdb/src/btree_str_kv.cc",
+                                "vendor/cbforest/vendor/forestdb/src/btreeblock.cc",
+                                "vendor/cbforest/vendor/forestdb/src/checksum.cc",
+                                "vendor/cbforest/vendor/forestdb/src/compactor.cc",
+                                "vendor/cbforest/vendor/forestdb/src/configuration.cc",
+                                "vendor/cbforest/vendor/forestdb/src/docio.cc",
+                                "vendor/cbforest/vendor/forestdb/src/fdb_errors.cc",
+                                "vendor/cbforest/vendor/forestdb/src/filemgr.cc",
+                                "vendor/cbforest/vendor/forestdb/src/filemgr_ops.cc",
+                                "vendor/cbforest/vendor/forestdb/src/filemgr_ops_linux.cc",
+                                "vendor/cbforest/vendor/forestdb/src/filemgr_ops_windows.cc",
+                                "vendor/cbforest/vendor/forestdb/src/forestdb.cc",
+                                "vendor/cbforest/vendor/forestdb/src/hash.cc",
+                                "vendor/cbforest/vendor/forestdb/src/hash_functions.cc",
+                                "vendor/cbforest/vendor/forestdb/src/hbtrie.cc",
+                                "vendor/cbforest/vendor/forestdb/src/iterator.cc",
+                                "vendor/cbforest/vendor/forestdb/src/kv_instance.cc",
+                                "vendor/cbforest/vendor/forestdb/src/list.cc",
+                                "vendor/cbforest/vendor/forestdb/src/snapshot.cc",
+                                "vendor/cbforest/vendor/forestdb/src/transaction.cc",
+                                "vendor/cbforest/vendor/forestdb/src/wal.cc",
+                                "vendor/cbforest/vendor/snappy/snappy.cc",
+                                "vendor/cbforest/vendor/snappy/snappy-c.cc",
+                                "vendor/cbforest/vendor/snappy/snappy-sinksource.cc",
+                                "vendor/cbforest/vendor/snappy/snappy-stubs-internal.cc",
+                                "vendor/cbforest/CBForest/slice.cc",
+                                "vendor/cbforest/CBForest/varint.cc",
+                                "vendor/cbforest/CBForest/Collatable.cc",
+                                "vendor/cbforest/CBForest/Database.cc",
+                                "vendor/cbforest/CBForest/DocEnumerator.cc",
+                                "vendor/cbforest/CBForest/Document.cc",
+                                "vendor/cbforest/CBForest/Index.cc",
+                                "vendor/cbforest/CBForest/KeyStore.cc",
+                                "vendor/cbforest/CBForest/RevID.cc",
+                                "vendor/cbforest/CBForest/RevTree.cc",
+                                "vendor/cbforest/CBForest/VersionedDocument.cc",
+                                "vendor/cbforest/CBForest/MapReduceIndex.cc",
+                                "vendor/cbforest/CBForest/Tokenizer.cc",
+                                "jni/cbf_collatable.cc",
+                                "jni/cbf_keystore.cc",
+                                "jni/cbf_database.cc",
+                                "jni/Database.cc",
+                                "jni/cbf_docenumerator.cc",
+                                "jni/cbf_document.cc",
+                                "jni/cbf_index.cc",
+                                "jni/cbf_mapreduceindex.cc",
+                                "jni/cbf_revid.cc",
+                                "jni/cbf_revtree.cc",
+                                "jni/cbf_slice.cc",
+                                "jni/cbf_versioneddocument.cc",
+                                "jni/cbf.cc",
+                                "jni/cbforest_wrap.cc"
+                    }
+                    exportedHeaders {
+                        srcDirs "vendor/cbforest/vendor/sqlite3-unicodesn/libstemmer_c/runtime",
+                                "vendor/cbforest/vendor/sqlite3-unicodesn/libstemmer_c/src_c",
+                                "vendor/cbforest/vendor/sqlite3-unicodesn",
+                                "vendor/cbforest/vendor/forestdb/include",
+                                "vendor/cbforest/vendor/forestdb/include/libforestdb",
+                                "vendor/cbforest/vendor/forestdb/src",
+                                "vendor/cbforest/vendor/forestdb/utils",
+                                "vendor/cbforest/vendor/forestdb/option",
+                                "vendor/cbforest/vendor/forestdb",
+                                "vendor/cbforest/vendor/snappy",
+                                "vendor/cbforest/CBForest"
+                    }
+                }
+                binaries.withType(StaticLibraryBinary) { binary ->
+                    buildable = false
+                }
+            }
+            binaries.all{
+                cppCompiler.args "-Wformat-security",
+                        "-Wmissing-declarations",
+                        "-Woverriding-method-mismatch",
+                        "-Wbool-conversion",
+                        "-Wno-arc-retain-cycles",
+                        "-std=gnu99",
+                        "-std=gnu++11",
+                        "-DSQLITE_ENABLE_FTS4",
+                        "-DSQLITE_ENABLE_FTS4_UNICODE61",
+                        "-DWITH_STEMMER_english",
+                        "-D_DOC_COMP",
+                        "-DHAVE_GCC_ATOMICS=1"
+
+                if (targetPlatform.operatingSystem.macOsX) {
+                    cppCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
+                    cppCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include/darwin"
+                    linker.args '-framework', "JavaVM"
+                } else if (targetPlatform.operatingSystem.linux) {
+                    cppCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
+                    cppCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include/linux"
+                } else if (targetPlatform.operatingSystem.windows) {
+                    cppCompiler.args "-I${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
+                    cppCompiler.args "-I${org.gradle.internal.jvm.Jvm.current().javaHome}/include/win32"
+                }
+            }
+        }
+    }
+
+}
+
+binaries.withType(SharedLibraryBinary) { binary ->
+    if (!buildable) {
+        return
+    }
+
+    def builderTask = binary.tasks
+
+    def arch = targetPlatform.architecture.name.replaceAll("-","_")
+    //jar.into("native/${targetPlatform.operatingSystem.name}/${targetPlatform.architecture.name}") {
+    jar.into("native/${targetPlatform.operatingSystem.name}/${arch}") {
+        from builderTask.outputFile
+    }
+
+    jar.dependsOn builderTask
+}
+
+tasks.withType(Test) {
+    systemProperty "java.library.path", "./build/binaries/couchbaseLiteJavaForestDBSharedLibrary/"
+}
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    compile !hasProperty("buildAgainstMavenArtifacts") ?
+            project(':libraries:couchbase-lite-java-core') :
+            'com.couchbase.lite:couchbase-lite-java-core:' + version
+
+    testCompile group: 'junit', name: 'junit', version: '4.11'
+    testCompile 'com.fasterxml.jackson.core:jackson-databind:2.6.0'
+    testCompile 'com.fasterxml.jackson.core:jackson-core:2.6.0'
+    testCompile 'com.fasterxml.jackson.core:jackson-annotations:2.6.0'
+}
+
+
+
+////////////////////////////////////////////
+// For Maven
+////////////////////////////////////////////
+
+task createMavenDirectory(type: Exec) {
+    ext {
+        uploadUser = System.getenv("MAVEN_UPLOAD_USERNAME") + ":" + System.getenv("MAVEN_UPLOAD_PASSWORD")
+        mkcolPath  = System.getenv("MAVEN_UPLOAD_REPO_URL") + "com/couchbase/lite/couchbase-lite-java-forestdb/" + version + "/"
+    }
+    commandLine "curl", "--user", uploadUser, "-X", "MKCOL", mkcolPath
+}
+
+// this hack is only needed for apache mod_dav based Maven repo's like file.couchbase.com.  otherwise, skip it
+createMavenDirectory.onlyIf { System.getenv("MAVEN_UPLOAD_REPO_URL").contains("files") }
+
+// first create the directory, then do the upload
+task uploadArchivesWrapper(dependsOn: createMavenDirectory) << {
+    uploadArchives.execute()
+}
+
+// this will upload, but will not first create a directory (which is needed on some servers)
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            repository(url: System.getenv("MAVEN_UPLOAD_REPO_URL")) {
+                authentication(userName: System.getenv("MAVEN_UPLOAD_USERNAME"), password: System.getenv("MAVEN_UPLOAD_PASSWORD"))
+            }
+            pom.version = version
+            pom.groupId = 'com.couchbase.lite'
+            pom.artifactId = 'couchbase-lite-java-forestdb'
+            pom.project {
+                licenses {
+                    license {
+                        name 'Couchbase Community Edition License Agreement'
+                        url 'http://www.couchbase.com/agreement/community'
+                        distribution 'repo'
+                    }
+                }
+            }
+        }
+    }
+}

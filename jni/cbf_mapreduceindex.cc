@@ -10,8 +10,6 @@
 #include "cbf_keystore.h"
 #include "cbf_mapreduceindex.h"
 
-#include <android/log.h>
-
 namespace CBF {
 
 /**
@@ -87,10 +85,10 @@ void MapReduceIndexer::InnerMapReduceIndexer::addMappable(
 	catch(forestdb::error x){
 		char buff[1024];
 		sprintf(buff, "Error indexing: ForestDB error %d", x.status);
-		__android_log_write(ANDROID_LOG_WARN, "CBF::MapReduceIndexer::InnerMapReduceIndexer::addMappable()",buff);
+		//__android_log_write(ANDROID_LOG_WARN, "CBF::MapReduceIndexer::InnerMapReduceIndexer::addMappable()",buff);
 	}
 	catch(...){
-		__android_log_write(ANDROID_LOG_WARN, "CBF::MapReduceIndexer::InnerMapReduceIndexer::addMappable()","Unexpected exception indexing");
+		//__android_log_write(ANDROID_LOG_WARN, "CBF::MapReduceIndexer::InnerMapReduceIndexer::addMappable()","Unexpected exception indexing");
 	}
 }
 

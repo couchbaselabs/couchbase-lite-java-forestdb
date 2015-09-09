@@ -8,8 +8,6 @@
 #include "KeyStore.hh"
 #include "cbf_keystore.h"
 #include "cbf_database.h"
-
-#include <android/log.h>
  
 /**
  * KeyStore - implementation
