@@ -55,7 +55,8 @@ model {
                     exportedHeaders {
                         srcDirs "vendor/cbforest/vendor/sqlite3-unicodesn/libstemmer_c/runtime",
                                 "vendor/cbforest/vendor/sqlite3-unicodesn/libstemmer_c/src_c",
-                                "vendor/cbforest/vendor/sqlite3-unicodesn"
+                                "vendor/cbforest/vendor/sqlite3-unicodesn",
+                                "vendor/sqlite"
                     }
                 }
             }
