@@ -3,7 +3,7 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 
-LOCAL_MODULE	:=	cbforest
+LOCAL_MODULE	:=	CouchbaseLiteJavaForestDB
 
 FORESTDB_PATH   :=  $(LOCAL_PATH)/../vendor/cbforest/vendor/forestdb
 SNAPPY_PATH     :=  $(LOCAL_PATH)/../vendor/cbforest/vendor/snappy

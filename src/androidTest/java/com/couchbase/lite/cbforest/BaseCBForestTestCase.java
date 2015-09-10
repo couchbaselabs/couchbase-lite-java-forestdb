@@ -17,10 +17,10 @@ public class BaseCBForestTestCase extends AndroidTestCase {
     /** static constructor */
     static {
         try {
-            System.loadLibrary("cbforest");
+            System.loadLibrary("CouchbaseLiteJavaForestDB");
         } catch (Exception e) {
-            Log.e(TAG, "ERROR: Failed to load libcbforest");
-            fail("ERROR: Failed to load libcbforest.");
+            Log.e(TAG, "ERROR: Failed to load libCouchbaseLiteJavaForestDB");
+            fail("ERROR: Failed to load libCouchbaseLiteJavaForestDB.");
         }
     }
 
