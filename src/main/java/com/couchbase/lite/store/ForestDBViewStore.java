@@ -94,7 +94,6 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore{
         CocoaMappable(Document doc, Map<String, Object> dict) {
             super(doc);
             body = dict;
-            Log.w(TAG, "[CocoaMappable.CocoaMappable(Document, Map<String, Object>)]");
         }
     }
 
@@ -108,17 +107,14 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore{
         private List<String> docTypes = new ArrayList<String>();
 
         CocoaIndexer(VectorMapReduceIndex indexes) {
-            Log.w(TAG, "[CocoaIndexer.CocoaIndexer(VectorMapReduceIndex)]");
             sourceStore = indexes.get(0).sourceStore();
         }
 
         void addDocType(String type){
-            Log.w(TAG, "[CocoaIndexer.addDocType()]");
             docTypes.add(type);
         }
 
         void clearDocTypes(){
-            Log.w(TAG, "[CocoaIndexer.clearDocTypes()]");
             docTypes.clear();
         }
 
@@ -126,7 +122,6 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore{
          * virtual void addDocument(const Document& cppDoc)
          */
         public void addDocument(Document cppDoc) {
-            Log.w(TAG, "[CocoaIndexer.addDocument(Document)]");
 
             // TODO: check sourceStore and cppDoc
 
@@ -150,7 +145,6 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore{
                     // TODO
                     // TODO
                 }
-                Log.w(TAG, "Mapping %s rev %s", body.get("_id"), body.get("_rev"));
                 CocoaMappable mappable = new CocoaMappable(cppDoc, body);
                 addMappable(mappable);
                 vdoc.delete();
@@ -158,7 +152,6 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore{
                 CocoaMappable mappable = new CocoaMappable(cppDoc, null);
                 addMappable(mappable);
             }
-            Log.w(TAG, "[CocoaIndexer.addDocument(Document)] END");
         }
     }
 
@@ -176,8 +169,6 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore{
          * virtual void operator() (const Mappable& mappable, EmitFn& emitFn)
          */
         public void call(Mappable mappable, final EmitFn emitFn) {
-            Log.w(TAG, "[MapReduceBridge.call()] START");
-
             CocoaMappable cocoaMappable = (CocoaMappable) mappable;
             final Map<String, Object> doc = cocoaMappable.body;
             if (doc == null)
@@ -192,7 +183,7 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore{
                     } else if (key instanceof SpecialKey) {
                         Log.e(TAG, "Special Key is not supported yet!!!!");
                     } else if (key != null) {
-                        Log.w(TAG, "    emit(%s, %s)  to %s", key, value, viewName);
+                        Log.d(TAG, "    emit(%s, %s)  to %s", key, value, viewName);
                         callEmit(key, value, doc, emitFn);
                     }
                 }
@@ -200,13 +191,10 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore{
 
             if (mapBlock != null)
                 mapBlock.map(doc, emitter); // Call the apps' map block!
-
-            Log.w(TAG, "[MapReduceBridge.call()] END");
         }
 
         // Emit a regular key/value pair
         void callEmit(Object key, Object value, Map<String, Object> doc, EmitFn emitFn) {
-            Log.w(TAG, "[MapReduceBridge.callEmit()] START");
             Collatable collKey = new Collatable();
             ForestDBCollatorUtil.add(collKey, key);
             Collatable collValue = new Collatable();
@@ -215,7 +203,6 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore{
             else if (value != null)
                 ForestDBCollatorUtil.add(collValue, value);
             emitFn.call(collKey, collValue);
-            Log.w(TAG, "[MapReduceBridge.callEmit()] END");
         }
     }
 
@@ -245,7 +232,6 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore{
         this._dbStore = dbStore;
         this.name = name;
         this._path = new File(dbStore.directory, viewNameToFileName(name)).getPath();
-        Log.w(TAG, "_path => " + _path);
         this._indexType = CBLViewIndexType.kUnknown;
         File file = new File(this._path);
         if(!file.exists()){
@@ -281,52 +267,42 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore{
 
     @Override
     public String getName() {
-        Log.w(TAG, "getName()");
         return name;
     }
 
     @Override
     public ViewStoreDelegate getDelegate() {
-        Log.w(TAG, "getDelegate()");
         return delegate;
     }
 
     @Override
     public void setDelegate(ViewStoreDelegate delegate) {
-        Log.w(TAG, "setDelegate()");
         this.delegate = delegate;
-
     }
 
     @Override
     public void close() {
-        Log.w(TAG, "close()");
         closeIndex();
-
     }
 
     @Override
     public void deleteIndex() {
         Log.e(TAG, "deleteIndex()");
-
     }
 
     @Override
     public void deleteView() {
-        Log.w(TAG, "deleteView()");
         closeIndex();
         FileDirUtils.deleteRecursive(new File(_path));
     }
 
     @Override
     public boolean setVersion(String version) {
-        Log.w(TAG, "setVersion() version=" + version);
         return true;
     }
 
     @Override
     public int getTotalRows() {
-        Log.w(TAG, "[getTotalRows()]");
         if(openIndex()==null)
             return 0;
         return _index.rowCount().intValue();
@@ -334,8 +310,6 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore{
 
     @Override
     public long getLastSequenceIndexed() {
-        Log.w(TAG, "[getLastSequenceIndexed()]");
-
         if(setupIndex() == null)// in case the _mapVersion changed, invalidating the _index
             return -1;
 
@@ -351,13 +325,10 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore{
 
     @Override
     public void updateIndex() throws CouchbaseLiteException {
-        Log.w(TAG, "[updateIndex()] START");
         updateIndex(Arrays.asList(this));
     }
 
     private int updateIndex(List<ForestDBViewStore> views) throws CouchbaseLiteException {
-        Log.w(TAG, "[updateIndex(List<ForestDBViewStore>)] Checking indexes of (%s) for %s", viewNames(views), name);
-
         List<Transaction> transactions = new ArrayList<Transaction>();
         CocoaIndexer indexer = null;
         try {
@@ -409,8 +380,6 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore{
 
     @Override
     public List<QueryRow> regularQuery(QueryOptions options) throws CouchbaseLiteException {
-        Log.w(TAG, "[regularQuery()]");
-
         if(openIndex()==null)
             return null;
 
@@ -433,7 +402,6 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore{
                 CollatableReader crKey = e.key();
                 Object key = ForestDBCollatorUtil.read(e.key());
                 Object value = ForestDBCollatorUtil.read(e.value());
-                Log.w(TAG, "Tag=" + crKey.peekTag()+ ", key="+key+", value="+value);
                 String docID = new String(e.docID().getBuf());
                 long sequence = e.sequence().longValue();
                 if(options.isIncludeDocs()){
@@ -449,7 +417,7 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore{
                         docRevision = _dbStore.getDocument(docID, null, true);
                     }
                 }
-                Log.w(TAG, "Query %s: Found row with key=%s, value=%s, id=%s",
+                Log.d(TAG, "Query %s: Found row with key=%s, value=%s, id=%s",
                         name,
                         key == null ? "" : key,
                         value == null ? "" : value,
@@ -560,8 +528,6 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore{
 
     @Override
     public List<Map<String, Object>> dump() {
-        Log.w(TAG, "dump()");
-
         MapReduceIndex index = openIndex();
         if(index == null)
             return null;
@@ -588,7 +554,6 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore{
 
     @Override
     public void setCollation(View.TDViewCollation collation) {
-        Log.w(TAG, "setCollation()");
         Log.w(TAG, "This method should be removed");
     }
 
