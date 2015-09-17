@@ -101,7 +101,8 @@ model {
                         "-DSQLITE_ENABLE_FTS4_UNICODE61",
                         "-DWITH_STEMMER_english",
                         "-DDOC_COMP",
-                        "-D_DOC_COMP"
+                        "-D_DOC_COMP",
+                        "-fPIC"
             }
             binaries.withType(SharedLibraryBinary) { binary ->
                 buildable = false
@@ -210,7 +211,8 @@ model {
                         "-DSQLITE_ENABLE_FTS4_UNICODE61",
                         "-DWITH_STEMMER_english",
                         "-D_DOC_COMP",
-                        "-DHAVE_GCC_ATOMICS=1"
+                        "-DHAVE_GCC_ATOMICS=1",
+                        "-D__unused="
 
                 if (targetPlatform.operatingSystem.macOsX) {
                     cppCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
