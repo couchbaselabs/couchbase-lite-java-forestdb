@@ -23,12 +23,20 @@ model {
             architecture "x86_64"
             operatingSystem "linux"
         }
+        linux_amd64 {
+            architecture "amd64"
+            operatingSystem "linux"
+        }
         windows_x86 {
             architecture "x86"
             operatingSystem "windows"
         }
         windows_x86_64 {
             architecture "x86_64"
+            operatingSystem "windows"
+        }
+        windows_amd64 {
+            architecture "amd64"
             operatingSystem "windows"
         }
     }
@@ -41,6 +49,13 @@ model {
 
     components {
         Tokenizer(NativeLibrarySpec) {
+            targetPlatform "osx_x86"
+            targetPlatform "osx_x86_64"
+            //targetPlatform "linux_x86" // gcc-multilib/g++-mutlilib does not work with clang
+            targetPlatform "linux_x86_64"
+            targetPlatform "linux_amd64"
+            targetPlatform "windows_x86"
+            targetPlatform "windows_x86_64"
             sources {
                 c {
                     source {
@@ -101,7 +116,8 @@ model {
                         "-DSQLITE_ENABLE_FTS4_UNICODE61",
                         "-DWITH_STEMMER_english",
                         "-DDOC_COMP",
-                        "-D_DOC_COMP"
+                        "-D_DOC_COMP",
+                        "-fPIC"
             }
             binaries.withType(SharedLibraryBinary) { binary ->
                 buildable = false
@@ -109,6 +125,13 @@ model {
         }
 
         CouchbaseLiteJavaForestDB(NativeLibrarySpec) {
+            targetPlatform "osx_x86"
+            targetPlatform "osx_x86_64"
+            //targetPlatform "linux_x86" // gcc-multilib/g++-mutlilib does not work with clang
+            targetPlatform "linux_x86_64"
+            targetPlatform "linux_amd64"
+            targetPlatform "windows_x86"
+            targetPlatform "windows_x86_64"
             sources {
                 cpp {
                     lib library: 'Tokenizer', linkage: 'static'
@@ -210,7 +233,8 @@ model {
                         "-DSQLITE_ENABLE_FTS4_UNICODE61",
                         "-DWITH_STEMMER_english",
                         "-D_DOC_COMP",
-                        "-DHAVE_GCC_ATOMICS=1"
+                        "-DHAVE_GCC_ATOMICS=1",
+                        "-D__unused="
 
                 if (targetPlatform.operatingSystem.macOsX) {
                     cppCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
@@ -235,10 +259,13 @@ binaries.withType(SharedLibraryBinary) { binary ->
     }
 
     def builderTask = binary.tasks
-
-    def arch = targetPlatform.architecture.name.replaceAll("-","_")
-    //jar.into("native/${targetPlatform.operatingSystem.name}/${targetPlatform.architecture.name}") {
-    jar.into("native/${targetPlatform.operatingSystem.name}/${arch}") {
+    def platformName = targetPlatform.name
+    def os = targetPlatform.operatingSystem.name
+    def arch = targetPlatform.architecture.name.replaceAll("-", "_")
+    if (platformName == "windows_amd64" || platformName == "linux_amd64") {
+        arch = "amd64"
+    }
+    jar.into("native/${os}/${arch}") {
         from builderTask.outputFile
     }
 

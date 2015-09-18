@@ -6,6 +6,7 @@
  */
 
 #include "cbf_docenumerator.h"
+#include <limits.h>
 
 namespace CBF {
 
