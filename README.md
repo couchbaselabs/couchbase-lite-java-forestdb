@@ -63,3 +63,10 @@ $ make jar
 #### Outcome 
 * cbforest.jar
 * libs/[platform]/libcbforest.so
+
+## NOTES
+### Build for Linux
+* Needs to install clang: `sudo apt-get install clang` for Ubuntu
+* Unable to cross-compile x86 build on 64bit machine. `clang` does not work with `gcc-multilib` and `g++-multilib`. We might needs to switch to GCC, but it requires CBForest code changes. 
+
+
