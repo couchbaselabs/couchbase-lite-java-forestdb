@@ -6122,7 +6122,17 @@ SWIGEXPORT jlong JNICALL Java_com_couchbase_lite_cbforest_cbforestJNI_new_1Versi
     SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "CBF::Slice & reference is null");
     return 0;
   } 
-  result = (CBF::VersionedDocument *)new CBF::VersionedDocument(*arg1,*arg2);
+  {
+    try {
+      result = (CBF::VersionedDocument *)new CBF::VersionedDocument(*arg1,*arg2);
+    } catch (forestdb::error err) {
+      jclass clazz = jenv->FindClass("java/lang/Exception");
+      char buff[64];
+      sprintf(buff, "%d", err.status);
+      jenv->ThrowNew(clazz, buff);
+      return 0;
+    }
+  }
   *(CBF::VersionedDocument **)&jresult = result; 
   return jresult;
 }
@@ -6148,7 +6158,17 @@ SWIGEXPORT jlong JNICALL Java_com_couchbase_lite_cbforest_cbforestJNI_new_1Versi
     SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "CBF::Document const & reference is null");
     return 0;
   } 
-  result = (CBF::VersionedDocument *)new CBF::VersionedDocument(*arg1,(CBF::Document const &)*arg2);
+  {
+    try {
+      result = (CBF::VersionedDocument *)new CBF::VersionedDocument(*arg1,(CBF::Document const &)*arg2);
+    } catch (forestdb::error err) {
+      jclass clazz = jenv->FindClass("java/lang/Exception");
+      char buff[64];
+      sprintf(buff, "%d", err.status);
+      jenv->ThrowNew(clazz, buff);
+      return 0;
+    }
+  }
   *(CBF::VersionedDocument **)&jresult = result; 
   return jresult;
 }

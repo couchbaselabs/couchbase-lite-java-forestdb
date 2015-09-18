@@ -319,7 +319,13 @@ public class ForestDBStore implements Store {
         RevisionInternal result = null;
 
         // TODO: add VersionDocument(Database, String)
-        VersionedDocument doc = new VersionedDocument(forest, new Slice(docID.getBytes()));
+        VersionedDocument doc = null;
+        try {
+            doc = new VersionedDocument(forest, new Slice(docID.getBytes()));
+        } catch (Exception e) {
+            Log.e(TAG, "ForestDB Error: " + e.getMessage(), e);
+            return null;
+        }
         if(!doc.exists()) {
             doc.delete();
             //throw new CouchbaseLiteException(Status.NOT_FOUND);
@@ -380,7 +386,13 @@ public class ForestDBStore implements Store {
             return null;
 
         RevisionInternal parent = null;
-        VersionedDocument doc = new VersionedDocument(forest, new Slice(rev.getDocID().getBytes()));
+        VersionedDocument doc = null;
+        try {
+            doc = new VersionedDocument(forest, new Slice(rev.getDocID().getBytes()));
+        } catch (Exception e) {
+            Log.w(TAG, "ForestDB Error: " + e.getMessage(), e);
+        }
+
         if(doc != null) {
             Revision revNode = null;
             try {
@@ -422,7 +434,13 @@ public class ForestDBStore implements Store {
     public RevisionList getAllRevisions(String docID, boolean onlyCurrent) {
 
         // TODO: add VersionDocument(Database, String)
-        VersionedDocument doc = new VersionedDocument(forest, new Slice(docID.getBytes()));
+        VersionedDocument doc = null;
+        try {
+            doc = new VersionedDocument(forest, new Slice(docID.getBytes()));
+        } catch (Exception e) {
+            Log.w(TAG, "ForestDB Error: " + e.getMessage(), e);
+            return null;
+        }
         if(!doc.exists()) {
             doc.delete();
             //throw new CouchbaseLiteException(Status.NOT_FOUND);
@@ -452,7 +470,13 @@ public class ForestDBStore implements Store {
         if(generation <= 1)
             return null;
 
-        VersionedDocument doc = new VersionedDocument(forest, new Slice(rev.getDocID().getBytes()));
+        VersionedDocument doc = null;
+        try {
+            doc = new VersionedDocument(forest, new Slice(rev.getDocID().getBytes()));
+        } catch (Exception e) {
+            Log.w(TAG, "ForestDB Error: " + e.getMessage(), e);
+            return null;
+        }
         if(doc == null)
             return null;
         List<String> revIDs = new ArrayList<String>();
@@ -512,7 +536,13 @@ public class ForestDBStore implements Store {
                 if (doc != null) {
                     doc.delete();
                 }
-                doc = new VersionedDocument(forest, new Slice(lastDocID.getBytes()));
+                try {
+                    doc = new VersionedDocument(forest, new Slice(lastDocID.getBytes()));
+                } catch (Exception e) {
+                    Log.w(TAG, "ForestDB Error: " + e.getMessage(), e);
+                    doc = null;
+                }
+
                 if (doc != null) {
                     try {
                         if (doc.get(new RevIDBuffer(new Slice(rev.getRevID().getBytes()))) != null) {
@@ -825,7 +855,13 @@ public class ForestDBStore implements Store {
             }
 
             // Parse the document revision tree:
-            VersionedDocument doc = new VersionedDocument(forest, rawDoc);
+            VersionedDocument doc = null;
+            try {
+                doc = new VersionedDocument(forest, rawDoc);
+            } catch (Exception e) {
+                Log.e(TAG, "ForestDB Error: " + e.getMessage(), e);
+                throw new CouchbaseLiteException(Status.EXCEPTION);
+            }
             Revision revNode;
 
             if (prevRevID != null) {
@@ -948,7 +984,13 @@ public class ForestDBStore implements Store {
             @Override
             public Status run() {
                 // First get the CBForest doc:
-                VersionedDocument doc = new VersionedDocument(forest, new Slice(rev.getDocID().getBytes()));
+                VersionedDocument doc = null;
+                try {
+                    doc = new VersionedDocument(forest, new Slice(rev.getDocID().getBytes()));
+                } catch (Exception e) {
+                    Log.e(TAG, "ForestDB Error: " + e.getMessage(), e);
+                    return new Status(Status.UNKNOWN);
+                }
 
                 // Add the revision & ancestry to the doc:
                 VectorRevID historyVector = new VectorRevID();
@@ -1009,7 +1051,13 @@ public class ForestDBStore implements Store {
             @Override
             public Status run() {
                 for (String docID : docsToRevs.keySet()) {
-                    VersionedDocument doc = new VersionedDocument(forest, new Slice(docID.getBytes()));
+                    VersionedDocument doc = null;
+                    try {
+                        doc = new VersionedDocument(forest, new Slice(docID.getBytes()));
+                    } catch (Exception e) {
+                        Log.e(TAG, "ForestDB Error: " + e.getMessage(), e);
+                        return new Status(Status.UNKNOWN);
+                    }
                     if(!doc.exists())
                         return new Status(Status.NOT_FOUND);
 

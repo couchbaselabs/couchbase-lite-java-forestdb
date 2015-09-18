@@ -35,11 +35,11 @@ public class VersionedDocument extends RevTree {
     super.delete();
   }
 
-  public VersionedDocument(KeyStore arg0, Slice arg1) {
+  public VersionedDocument(KeyStore arg0, Slice arg1) throws java.lang.Exception {
     this(cbforestJNI.new_VersionedDocument__SWIG_0(KeyStore.getCPtr(arg0), arg0, Slice.getCPtr(arg1), arg1), true);
   }
 
-  public VersionedDocument(KeyStore arg0, Document arg1) {
+  public VersionedDocument(KeyStore arg0, Document arg1) throws java.lang.Exception {
     this(cbforestJNI.new_VersionedDocument__SWIG_1(KeyStore.getCPtr(arg0), arg0, Document.getCPtr(arg1), arg1), true);
   }
 

@@ -137,7 +137,14 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore{
             }
 
             if (indexIt) {
-                VersionedDocument vdoc = new VersionedDocument(sourceStore, cppDoc);
+                VersionedDocument vdoc = null;
+                try {
+                    vdoc = new VersionedDocument(sourceStore, cppDoc);
+                } catch (Exception e) {
+                    Log.e(TAG, "ForestDB Error: " + e.getMessage(), e);
+                    return;
+                }
+
                 Revision node = vdoc.currentRevision();
                 Map<String, Object> body = ForestBridge.bodyOfNode(node, vdoc);
                 body.put("_local_seq", node.getSequence().longValue());

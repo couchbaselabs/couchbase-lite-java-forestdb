@@ -269,8 +269,8 @@ public class cbforestJNI {
   public final static native int VersionedDocument_kDeleted_get();
   public final static native int VersionedDocument_kConflicted_get();
   public final static native int VersionedDocument_kHasAttachments_get();
-  public final static native long new_VersionedDocument__SWIG_0(long jarg1, KeyStore jarg1_, long jarg2, Slice jarg2_);
-  public final static native long new_VersionedDocument__SWIG_1(long jarg1, KeyStore jarg1_, long jarg2, Document jarg2_);
+  public final static native long new_VersionedDocument__SWIG_0(long jarg1, KeyStore jarg1_, long jarg2, Slice jarg2_) throws java.lang.Exception;
+  public final static native long new_VersionedDocument__SWIG_1(long jarg1, KeyStore jarg1_, long jarg2, Document jarg2_) throws java.lang.Exception;
   public final static native void delete_VersionedDocument(long jarg1);
   public final static native void VersionedDocument_read(long jarg1, VersionedDocument jarg1_) throws java.lang.Exception;
   public final static native boolean VersionedDocument_revsAvailable(long jarg1, VersionedDocument jarg1_);
