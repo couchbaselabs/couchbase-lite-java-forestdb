@@ -381,7 +381,18 @@
     return $null;
    }
 }
-
+// VersionedDocument
+%javaexception("java.lang.Exception") VersionedDocument {
+  try {
+     $action
+  } catch (forestdb::error err) {
+    jclass clazz = jenv->FindClass("java/lang/Exception");
+    char buff[64];
+    sprintf(buff, "%d", err.status);
+    jenv->ThrowNew(clazz, buff);
+    return $null;
+   }
+}
 /**
  * Mappable 
  * NOTE: Mappable is extended Java side, and is passed as parameter from native to java.
