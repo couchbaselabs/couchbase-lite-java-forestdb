@@ -137,7 +137,7 @@ public class ForestDBStore implements Store {
     }
 
     @Override
-    public boolean open() {
+    public void open() throws CouchbaseLiteException {
         OpenFlags options = readOnly ? OpenFlags.FDB_OPEN_FLAG_RDONLY : OpenFlags.FDB_OPEN_FLAG_CREATE;
 
         Config config = Database.defaultConfig();
@@ -155,12 +155,9 @@ public class ForestDBStore implements Store {
         try {
             forest = new Database(path, config);
         } catch (Exception e) {
-            Log.e(TAG, "Failed to open the forestdb: code=%s", e.getMessage());
-            e.printStackTrace();
-            return false;
+            Log.e(TAG, "Failed to open the forestdb: code=%s", e);
+            throw new CouchbaseLiteException("Cannot create database", e, Status.DB_ERROR);
         }
-
-        return true;
     }
 
     @Override
