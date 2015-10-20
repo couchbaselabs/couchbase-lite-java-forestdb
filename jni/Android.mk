@@ -10,7 +10,9 @@ SNAPPY_PATH     :=  $(LOCAL_PATH)/../vendor/cbforest/vendor/snappy
 SQLITE3_PATH   	:=  $(LOCAL_PATH)/../vendor/cbforest/vendor/sqlite3-unicodesn
 SQLITE_INC_PATH :=  $(LOCAL_PATH)/../vendor/sqlite
 CBFOREST_PATH   :=  $(LOCAL_PATH)/../vendor/cbforest/CBForest
-
+CBFOREST_C_PATH  :=  $(LOCAL_PATH)/../vendor/cbforest/C
+CBFOREST_JAVA_PATH  :=  $(LOCAL_PATH)/../vendor/cbforest/Java
+CBFOREST_JNI_PATH   :=  $(LOCAL_PATH)/../vendor/cbforest/Java/jni
 
 LOCAL_CFLAGS    :=  -I$(SQLITE3_PATH)/libstemmer_c/runtime/ \
 					-I$(SQLITE3_PATH)/libstemmer_c/src_c/ \
@@ -31,19 +33,22 @@ LOCAL_CPPFLAGS	:= 	-I$(FORESTDB_PATH)/include/ \
 					-I$(FORESTDB_PATH)/utils/ \
 					-I$(FORESTDB_PATH)/option/ \
 					-I$(SNAPPY_PATH)/ \
-					-I$(CBFOREST_PATH)/
+					-I$(CBFOREST_PATH)/ \
+					-I$(CBFOREST_C_PATH)/ \
+					-I$(CBFOREST_JNI_PATH)/
 
 LOCAL_CPPFLAGS	+=	-std=c++11
 LOCAL_CPPFLAGS	+=	-fexceptions
 LOCAL_CPPFLAGS	+=	-fpermissive
 LOCAL_CPPFLAGS	+=	-frtti
 LOCAL_CPPFLAGS	+=	-D__ANDROID__
+#LOCAL_CPPFLAGS	+=	-DNO_CBFOREST_ENCRYPTION
 
 # this requires for stdint.h active if android sdk is lower than or equal to android-19
 # With android-21, it seems no longer necessary.
 # http://stackoverflow.com/questions/986426/what-do-stdc-limit-macros-and-stdc-constant-macros-mean
 LOCAL_CPPFLAGS	+=	-D__STDC_LIMIT_MACROS  
-#LOCAL_CPPFLAGS  +=  -g -O0
+LOCAL_CPPFLAGS  +=  -g -O0
 LOCAL_CPPFLAGS	+=	-Wno-unused-value
 LOCAL_CPPFLAGS	+=	-Wno-deprecated-register
 LOCAL_CPPFLAGS  += -fexceptions
@@ -103,6 +108,7 @@ LOCAL_SRC_FILES :=	$(SQLITE3_PATH)/fts3_unicode2.c \
 					$(FORESTDB_PATH)/utils/time_utils.cc \
 					$(FORESTDB_PATH)/src/api_wrapper.cc \
 					$(FORESTDB_PATH)/src/avltree.cc \
+					$(FORESTDB_PATH)/src/bgflusher.cc \
 					$(FORESTDB_PATH)/src/blockcache.cc \
 					$(FORESTDB_PATH)/src/btree.cc \
 					$(FORESTDB_PATH)/src/btree_fast_str_kv.cc \
@@ -113,6 +119,9 @@ LOCAL_SRC_FILES :=	$(SQLITE3_PATH)/fts3_unicode2.c \
 					$(FORESTDB_PATH)/src/compactor.cc \
 					$(FORESTDB_PATH)/src/configuration.cc \
 					$(FORESTDB_PATH)/src/docio.cc \
+					$(FORESTDB_PATH)/src/encryption_aes.cc \
+					$(FORESTDB_PATH)/src/encryption_bogus.cc \
+					$(FORESTDB_PATH)/src/encryption.cc \
 					$(FORESTDB_PATH)/src/fdb_errors.cc \
 					$(FORESTDB_PATH)/src/filemgr.cc \
 					$(FORESTDB_PATH)/src/filemgr_ops.cc \
@@ -133,11 +142,14 @@ LOCAL_SRC_FILES :=	$(SQLITE3_PATH)/fts3_unicode2.c \
 					$(SNAPPY_PATH)/snappy-sinksource.cc \
 					$(SNAPPY_PATH)/snappy-stubs-internal.cc \
 					$(CBFOREST_PATH)/slice.cc \
+					$(CBFOREST_PATH)/sqlite_glue.c \
 					$(CBFOREST_PATH)/varint.cc \
 					$(CBFOREST_PATH)/Collatable.cc \
 					$(CBFOREST_PATH)/Database.cc \
 					$(CBFOREST_PATH)/DocEnumerator.cc \
 					$(CBFOREST_PATH)/Document.cc \
+					$(CBFOREST_PATH)/Geohash.cc \
+					$(CBFOREST_PATH)/GeoIndex.cc \
 					$(CBFOREST_PATH)/Index.cc \
 					$(CBFOREST_PATH)/KeyStore.cc \
 					$(CBFOREST_PATH)/RevID.cc \
@@ -145,18 +157,14 @@ LOCAL_SRC_FILES :=	$(SQLITE3_PATH)/fts3_unicode2.c \
 					$(CBFOREST_PATH)/VersionedDocument.cc \
 					$(CBFOREST_PATH)/MapReduceIndex.cc \
 					$(CBFOREST_PATH)/Tokenizer.cc \
-					cbf_collatable.cc \
-					cbf_keystore.cc \
-					cbf_database.cc \
-					cbf_docenumerator.cc \
-					cbf_document.cc \
-					cbf_index.cc \
-					cbf_mapreduceindex.cc \
-					cbf_revid.cc \
-					cbf_revtree.cc \
-					cbf_slice.cc \
-					cbf_versioneddocument.cc \
-					cbf.cc \
-					cbforest_wrap.cc
+					$(CBFOREST_C_PATH)/c4.c \
+					$(CBFOREST_C_PATH)/c4Database.cc \
+					$(CBFOREST_C_PATH)/c4View.cc \
+					$(CBFOREST_JNI_PATH)/native_database.cc \
+					$(CBFOREST_JNI_PATH)/native_document.cc \
+					$(CBFOREST_JNI_PATH)/native_documentiterator.cc \
+					$(CBFOREST_JNI_PATH)/native_glue.cc \
+					$(CBFOREST_JNI_PATH)/native_queryIterator.cc \
+					$(CBFOREST_JNI_PATH)/native_view.cc
 					
 include $(BUILD_SHARED_LIBRARY)

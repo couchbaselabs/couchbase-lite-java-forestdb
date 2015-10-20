@@ -1,5 +1,25 @@
+/**
+ * Created by Hideki Itakura on 10/20/2015.
+ * Copyright (c) 2015 Couchbase, Inc All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the
+ * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific language governing permissions
+ * and limitations under the License.
+ */
 package com.couchbase.lite.store;
 
+import com.couchbase.cbforest.Constants;
+import com.couchbase.cbforest.Database;
+import com.couchbase.cbforest.Document;
+import com.couchbase.cbforest.DocumentIterator;
+import com.couchbase.cbforest.ForestException;
+import com.couchbase.cbforest.Logger;
 import com.couchbase.lite.BlobKey;
 import com.couchbase.lite.ChangesOptions;
 import com.couchbase.lite.CouchbaseLiteException;
@@ -15,27 +35,9 @@ import com.couchbase.lite.RevisionList;
 import com.couchbase.lite.Status;
 import com.couchbase.lite.TransactionalTask;
 import com.couchbase.lite.View;
-import com.couchbase.lite.cbforest.Config;
-import com.couchbase.lite.cbforest.ContentOptions;
-import com.couchbase.lite.cbforest.Database;
-import com.couchbase.lite.cbforest.DocEnumerator;
-import com.couchbase.lite.cbforest.Document;
-import com.couchbase.lite.cbforest.KeyStore;
-import com.couchbase.lite.cbforest.KeyStoreWriter;
-import com.couchbase.lite.cbforest.OpenFlags;
-import com.couchbase.lite.cbforest.RevID;
-import com.couchbase.lite.cbforest.RevIDBuffer;
-import com.couchbase.lite.cbforest.Revision;
-import com.couchbase.lite.cbforest.Slice;
-import com.couchbase.lite.cbforest.Transaction;
-import com.couchbase.lite.cbforest.VectorRevID;
-import com.couchbase.lite.cbforest.VectorRevision;
-import com.couchbase.lite.cbforest.VectorString;
-import com.couchbase.lite.cbforest.VersionedDocument;
 import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.support.RevisionUtils;
 import com.couchbase.lite.util.Log;
-
 import com.couchbase.lite.util.NativeLibUtils;
 
 import java.io.File;
@@ -51,12 +53,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-
-
-/**
- * Created by hideki on 8/13/15.
- */
-public class ForestDBStore implements Store {
+public class ForestDBStore implements Store, Constants {
 
     public static String TAG = Log.TAG_DATABASE;
 
@@ -84,20 +81,10 @@ public class ForestDBStore implements Store {
 
     private static final int kDefaultMaxRevTreeDepth = 20;
 
-    // transactionLevel is per thread
-    static class TransactionLevel extends ThreadLocal<Integer> {
-        @Override
-        protected Integer initialValue() {
-            return 0;
-        }
-    }
-
     protected String directory;
     private String path;
     private Manager manager;
     protected Database forest;
-    private Transaction forestTransaction = null;
-    private TransactionLevel transactionLevel;
     private StoreDelegate delegate;
     private int maxRevTreeDepth;
     private boolean autoCompact;
@@ -117,7 +104,6 @@ public class ForestDBStore implements Store {
         this.path = new File(directory, kDBFilename).getPath();
         this.manager = manager;
         this.forest = null;
-        this.transactionLevel = new TransactionLevel();
         this.delegate = delegate;
         this.autoCompact = true;
         this.maxRevTreeDepth = kDefaultMaxRevTreeDepth;
@@ -138,35 +124,30 @@ public class ForestDBStore implements Store {
 
     @Override
     public void open() throws CouchbaseLiteException {
-        OpenFlags options = readOnly ? OpenFlags.FDB_OPEN_FLAG_RDONLY : OpenFlags.FDB_OPEN_FLAG_CREATE;
-
-        Config config = Database.defaultConfig();
-        config.setFlags(options);
-        config.setBuffercacheSize(kDBBufferCacheSize);
-        config.setWalThreshold(kDBWALThreshold);
-        config.setWalFlushBeforeCommit(true);
-        //config.seqtree_opt = true;
-        config.setCompressDocumentBody(true);
-        if (autoCompact)
-            config.setCompactorSleepDuration(kAutoCompactInterval);
-        else
-            config.setCompactionThreshold((short) 0);
-
+        Log.w(TAG, "open()");
+        int flags = (readOnly ? Database.ReadOnly : Database.Create) | Database.AutoCompact;
         try {
-            forest = new Database(path, config);
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to open the forestdb: code=%s", e);
+            forest = new Database(path, flags, 0, null);
+        } catch (ForestException e) {
+            Log.e(TAG, "Failed to open the forestdb: domain=%d, error=%d", e.domain, e.code, e);
             throw new CouchbaseLiteException("Cannot create database", e, Status.DB_ERROR);
         }
+
+        forest.setLogger(new Logger() {
+            @Override
+            public void log(int level, String message) {
+                Log.w(TAG, message);
+            }
+        }, Logger.Debug);
     }
 
     @Override
     public void close() {
+        Log.w(TAG, "close()");
         if (forest != null) {
-            forest.delete();
+            forest.free();
             forest = null;
         }
-        transactionLevel.set(0);
     }
 
     @Override
@@ -197,107 +178,88 @@ public class ForestDBStore implements Store {
 
     @Override
     public long setInfo(String key, String info) {
+        Log.w(TAG, "setInfo()");
+
         final String k = key;
         final String i = info;
         try {
-            final KeyStore infoStore = new KeyStore(forest, "info");
             runInTransaction(new TransactionalTask() {
                 @Override
                 public boolean run() {
-                    KeyStoreWriter infoWriter = forestTransaction.toKeyStoreWriter(infoStore);
                     try {
-                        if(i == null)
-                            infoWriter.set(new Slice(k.getBytes()), new Slice());
-                        else
-                            infoWriter.set(new Slice(k.getBytes()), new Slice(i.getBytes()));
-                    } catch (Exception e) {
+                        forest.rawPut("info", k, null, i.getBytes());
+                    } catch (ForestException e) {
                         Log.e(TAG, "Error in KeyStoreWriter.set()", e);
                         return false;
                     }
-                    infoWriter.delete();
                     return true;
                 }
             });
-            infoStore.delete();
+            return Status.OK;
         }
         catch (Exception e){
             Log.e(TAG, "Error in setInfo(): "+ e.getMessage(), e);
             return Status.UNKNOWN;
         }
-        return Status.OK;
+
     }
 
     @Override
     public String getInfo(String key) {
+        Log.w(TAG, "getInfo()");
+
         try {
-            KeyStore infoStore = new KeyStore(forest, "info");
-            Document doc = infoStore.get(new Slice(key.getBytes()));
-            String value = null;
-            if(doc != null && doc.getBody() != null && doc.getBody().getBuf()!= null)
-                value = new String(doc.getBody().getBuf());
-            infoStore.delete();
-            //Log.w(TAG, "getInfo() value=" + value);
-            return value;
-        }
-        catch (Exception e){
-            Log.e(TAG, "Error in getInfo(): "+ e.getMessage(), e);
+            byte[][] metaNbody = forest.rawGet("info", key);
+            return new String(metaNbody[1]);
+        } catch (ForestException e) {
+            // KEY NOT FOUND
+            if(e.domain == C4ErrorDomain.ForestDBDomain &&
+                    e.code == FDBErrors.FDB_RESULT_KEY_NOT_FOUND) {
+                Log.i(TAG, "[getInfo()] Key(\"%s\") is not found.", key);
+            }
+            // UNEXPECTED ERROR
+            else {
+                Log.e(TAG, "[getInfo()] Unexpected Error", e);
+            }
             return null;
         }
     }
 
     @Override
     public int getDocumentCount() {
-        try {
-            DocEnumerator.Options ops = new DocEnumerator.Options();
-            ops.setContentOption(ContentOptions.kMetaOnly);
-            int count = 0;
-            DocEnumerator e = new DocEnumerator(forest, new Slice(), new Slice(), ops);
-            for (; e.next(); ) {
-
-                VersionedDocument vdoc = new VersionedDocument(forest, e.doc());
-                if (!vdoc.isDeleted())
-                    count++;
-            }
-            return count;
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to getDocumentCount(): code=%s", e.getMessage());
-            e.printStackTrace();
-            return -1;
-        }
+        Log.w(TAG, "getDocumentCount()");
+        return (int)forest.getDocumentCount();
     }
 
     @Override
     public long getLastSequence() {
-        try {
-            return forest.getLastSequence().longValue();
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to getLastSequence(): code=%s", e.getMessage());
-            e.printStackTrace();
-            return -1;
-        }
+        Log.w(TAG, "getLastSequence()");
+        return forest.getLastSequence();
     }
 
     @Override
     public boolean inTransaction() {
-        return transactionLevel.get() > 0;
+        Log.w(TAG, "inTransaction()");
+        return forest.isInTransaction();
     }
 
     @Override
     public void compact() throws CouchbaseLiteException {
+        Log.w(TAG, "compact()");
         try {
             forest.compact();
-        } catch (Exception e) {
-            String msg = String.format("Failed to compact(): code=%s", e.getMessage());
-            Log.e(TAG, msg);
-            e.printStackTrace();
+        } catch (ForestException e) {
+            String msg = String.format("Failed to compact(): domain=%d code=%d", e.domain, e.code);
+            Log.e(TAG, msg, e);
             throw new CouchbaseLiteException(Status.UNKNOWN);
         }
     }
 
     @Override
     public boolean runInTransaction(TransactionalTask task) {
-        beginTransaction();
+        Log.w(TAG, "runInTransaction()");
         boolean commit = true;
+        beginTransaction();
         try {
             commit = task.run();
         } catch (Exception e) {
@@ -312,37 +274,27 @@ public class ForestDBStore implements Store {
 
     @Override
     public RevisionInternal getDocument(String docID, String revID, boolean withBody) {
-
+        Log.w(TAG, "getDocument()");
         RevisionInternal result = null;
 
-        // TODO: add VersionDocument(Database, String)
-        VersionedDocument doc = null;
+        Document doc;
         try {
-            doc = new VersionedDocument(forest, new Slice(docID.getBytes()));
-        } catch (Exception e) {
+            doc = forest.getDocument(docID, false);
+        } catch (ForestException e) {
             Log.e(TAG, "ForestDB Error: " + e.getMessage(), e);
             return null;
         }
-        if(!doc.exists()) {
-            doc.delete();
-            //throw new CouchbaseLiteException(Status.NOT_FOUND);
+        if(!doc.exists()){
+            doc.free();
             return null;
         }
 
         if(revID == null){
-            Revision rev = doc.currentRevision();
-            if(rev == null || rev.isDeleted()) {
-                //throw new CouchbaseLiteException(Status.DELETED);
+            if(!doc.selectCurrentRev())
                 return null;
-            }
-            // TODO: add String getRevID()
-            // TODO: revID is something wrong!!!!!
-            RevID tmpRevID = rev.getRevID();
-            byte [] buff = tmpRevID.getBuf();
-            long bufSize = tmpRevID.getBufSize();
-            long size = tmpRevID.getSize();
-            revID = rev.getRevID().toString();
-            //Log.w(TAG, "[getDocument()] revID => " + revID + ", bufSize=" + bufSize + ", size=" + size);
+            if(doc.selectedRevDeleted())
+                return null;
+            revID = doc.getSelectedRevID();
         }
 
         try {
@@ -351,171 +303,187 @@ public class ForestDBStore implements Store {
             Log.e(TAG, "Error in ForestBridge.revisionObjectFromForestDoc(): error=%s", e.getMessage());
             return null;
         }
-        if(result == null)
-            //throw new CouchbaseLiteException(Status.NOT_FOUND);
-            return null;
 
         return result;
     }
 
     @Override
     public RevisionInternal loadRevisionBody(RevisionInternal rev) throws CouchbaseLiteException {
+        Log.w(TAG, "loadRevisionBody()");
 
+        Document doc;
         try {
-            VersionedDocument doc = new VersionedDocument(forest, new Slice(rev.getDocID().getBytes()));
-            if (doc == null || !doc.exists())
+            doc = forest.getDocument(rev.getDocID(), true);
+        } catch (ForestException e) {
+            if(e.domain == C4ErrorDomain.ForestDBDomain && e.code == FDBErrors.FDB_RESULT_KEY_NOT_FOUND) {
                 throw new CouchbaseLiteException(Status.NOT_FOUND);
+            }else{
+                Log.e(TAG, "Error in loadRevisionBody()", e);
+                throw new CouchbaseLiteException(Status.UNKNOWN);
+            }
+        }
+        if(!doc.exists()){
+            doc.free();
+            throw new CouchbaseLiteException(Status.NOT_FOUND);
+        }
+        try {
             if (!ForestBridge.loadBodyOfRevisionObject(rev, doc))
                 throw new CouchbaseLiteException(Status.NOT_FOUND);
-            return rev;
-        }catch(CouchbaseLiteException cle){
-            throw cle;
-        }catch(Exception e){
-            Log.e(TAG, "ERROR in loadRevisionBody()", e);
-            throw new CouchbaseLiteException(Status.UNKNOWN);
+        } catch (ForestException e) {
+            Log.e(TAG, "ForestDB Error: " + e.getMessage(), e);
+            throw new CouchbaseLiteException(Status.NOT_FOUND);
         }
+        return rev;
     }
 
     @Override
     public RevisionInternal getParentRevision(RevisionInternal rev) {
-
+        Log.w(TAG, "getParentRevision()");
         if(rev.getDocID() == null || rev.getRevID() == null)
             return null;
 
         RevisionInternal parent = null;
-        VersionedDocument doc = null;
+
+        Document doc = null;
         try {
-            doc = new VersionedDocument(forest, new Slice(rev.getDocID().getBytes()));
-        } catch (Exception e) {
+            doc = forest.getDocument(rev.getDocID(), true);
+        } catch (ForestException e) {
             Log.w(TAG, "ForestDB Error: " + e.getMessage(), e);
         }
-
-        if(doc != null) {
-            Revision revNode = null;
+        if(doc != null){
             try {
-                revNode = doc.get(new RevIDBuffer(new Slice(rev.getRevID().getBytes())));
-            } catch (Exception e) {
-                Log.e(TAG, "Error in getParentRevision()", e);
-                return null;
-            }
-            if (revNode != null) {
-                Revision parentRevision = revNode.getParent();
-                if(parentRevision!=null){
-                    String parentRevID = new String(parentRevision.getRevID().getBuf());
-                    parent = new RevisionInternal(rev.getDocID(), parentRevID, parentRevision.isDeleted());
+                if (doc.selectRevID(rev.getRevID(), false)) {
+                    if (doc.selectParentRev()) {
+                        parent = new RevisionInternal(rev.getDocID(), doc.getSelectedRevID(), doc.selectedRevDeleted());
+                    }
+
                 }
-                revNode.delete();
+            }catch(ForestException e){
+                Log.w(TAG, "ForestDB Error: " + e.getMessage(), e);
             }
-            doc.delete();
+            doc.free();
         }
+
         return parent;
     }
 
     @Override
     public List<RevisionInternal> getRevisionHistory(RevisionInternal rev) {
+        Log.w(TAG, "getRevisionHistory()");
+        List<RevisionInternal> history = null;
+        String docId = rev.getDocID();
+        String revId = rev.getRevID();
         try {
-            String docId = rev.getDocID();
-            String revId = rev.getRevID();
-            VersionedDocument doc = new VersionedDocument(forest, new Slice(docId.getBytes()));
-            Revision revision = doc.get(new RevIDBuffer(new Slice(revId.getBytes())));
-            List<RevisionInternal> history = ForestBridge.getRevisionHistory(docId, revision);
-            doc.delete();
-            return history;
-        }catch(Exception e){
+            Document doc = forest.getDocument(docId, true);
+            try {
+                if (!doc.selectRevID(revId, false))
+                    return null;
+                history = ForestBridge.getRevisionHistory(doc);
+            } finally {
+                doc.free();
+            }
+        }
+        catch (ForestException e){
             Log.e(TAG, "Error in getRevisionHistory() rev="+rev, e);
             return null;
         }
+        return history;
+
     }
 
     @Override
     public RevisionList getAllRevisions(String docID, boolean onlyCurrent) {
+        Log.w(TAG, "getAllRevisions()");
 
-        // TODO: add VersionDocument(Database, String)
-        VersionedDocument doc = null;
+        Document doc;
         try {
-            doc = new VersionedDocument(forest, new Slice(docID.getBytes()));
-        } catch (Exception e) {
-            Log.w(TAG, "ForestDB Error: " + e.getMessage(), e);
+            doc = forest.getDocument(docID, false);
+        } catch (ForestException e) {
+            Log.e(TAG, "ForestDB Error: " + e.getMessage(), e);
             return null;
         }
-        if(!doc.exists()) {
-            doc.delete();
-            //throw new CouchbaseLiteException(Status.NOT_FOUND);
+        if(!doc.exists()){
+            doc.free();
             return null;
         }
+
+
         RevisionList revs = new RevisionList();
 
-        VectorRevision revNodes = null;
-        if(onlyCurrent)
-            revNodes = doc.currentRevisions();
-        else
-            revNodes = doc.allRevisions();
-
-        for(int i = 0; i < revNodes.size(); i++){
-            Revision revNode = revNodes.get(i);
-            RevisionInternal rev = new RevisionInternal(docID, new String(revNode.getRevID().getBuf()), revNode.isDeleted());
-            revs.add(rev);
+        if (onlyCurrent) {
+            try {
+                do {
+                    revs.add(new RevisionInternal(docID, doc.getSelectedRevID(), doc.selectedRevDeleted()));
+                } while (doc.selectNextLeaf(true, false));
+            }catch(ForestException e){
+                Log.e(TAG, "ForestDB Error: " + e.getMessage(), e);
+                return null;
+            }
+        } else {
+            do {
+                revs.add(new RevisionInternal(docID, doc.getSelectedRevID(), doc.selectedRevDeleted()));
+            } while (doc.selectNextRev());
         }
 
         return revs;
+
     }
 
     @Override
     public List<String> getPossibleAncestorRevisionIDs(RevisionInternal rev, int limit,
                                                        AtomicBoolean onlyAttachments) {
+        Log.w(TAG, "getPossibleAncestorRevisionIDs()");
         int generation = RevisionInternal.generationFromRevID(rev.getRevID());
         if(generation <= 1)
             return null;
 
-        VersionedDocument doc = null;
+        Document doc;
         try {
-            doc = new VersionedDocument(forest, new Slice(rev.getDocID().getBytes()));
-        } catch (Exception e) {
-            Log.w(TAG, "ForestDB Error: " + e.getMessage(), e);
-            return null;
-        }
-        if(doc == null)
-            return null;
-        List<String> revIDs = new ArrayList<String>();
-        try {
-            VectorRevision allRevisions = doc.allRevisions();
-            for (int i = 0; i < allRevisions.size(); i++) {
-                Revision r = allRevisions.get(i);
-                if (r.getRevID().generation() < generation
-                        && !r.isDeleted()
-                        && r.isBodyAvailable()
-                        && !(onlyAttachments.get() && !r.hasAttachments())) {
-
-                    if (onlyAttachments != null && revIDs.size() == 0) {
-                        //onlyAttachments.set(sequenceHasAttachments(cursor.getLong(1)));
-                        onlyAttachments.set(r.hasAttachments());
-                    }
-
-                    revIDs.add(new String(r.getRevID().getBuf()));
-                    if (limit > 0 && revIDs.size() >= limit)
-                        break;
-                }
-
+            doc = forest.getDocument(rev.getDocID(), true);
+        } catch (ForestException e) {
+            if(e.domain == C4ErrorDomain.ForestDBDomain && e.code == FDBErrors.FDB_RESULT_KEY_NOT_FOUND) {
+                return null;
+            }else{
+                Log.e(TAG, "Error in getPossibleAncestorRevisionIDs()", e);
+                return null;
             }
         }
-        catch (Exception e){
-            Log.e(TAG, "Error in getPossibleAncestorRevisionIDs()", e);
+        if(!doc.exists()){
+            doc.free();
+            return null;
         }
-        finally {
-            doc.delete();
-        }
+
+        List<String> revIDs = new ArrayList<>();
+        doc.selectCurrentRev();
+        do{
+            String revID = doc.getSelectedRevID();
+            if(RevisionInternal.generationFromRevID(revID) < generation
+                    && !doc.selectedRevDeleted()
+                    && doc.hasRevisionBody()
+                    && !(onlyAttachments.get() && !doc.selectedRevHasAttachments())){
+                if (onlyAttachments != null && revIDs.size() == 0) {
+                    onlyAttachments.set(doc.selectedRevHasAttachments());
+                }
+
+                revIDs.add(revID);
+                if (limit > 0 && revIDs.size() >= limit)
+                    break;
+            }
+
+        }while(doc.selectNextRev());
 
         return revIDs;
     }
 
-    @Override
-    public String findCommonAncestor(RevisionInternal rev, List<String> revIDs) {
-        Log.e(TAG, "findCommonAncestor()");
-        return null;
-    }
+//    @Override
+//    public String findCommonAncestor(RevisionInternal rev, List<String> revIDs) {
+//        Log.e(TAG, "findCommonAncestor()");
+//        return null;
+//    }
 
     @Override
     public int findMissingRevisions(RevisionList revs) {
+        Log.w(TAG, "findMissingRevisions()");
         int numRevisionsRemoved = 0;
 
         if (revs.size() == 0)
@@ -524,25 +492,29 @@ public class ForestDBStore implements Store {
         RevisionList sortedRevs = (RevisionList)revs.clone();
         sortedRevs.sortByDocID();
 
-        VersionedDocument doc = null;
+        Document doc = null;
         String lastDocID = null;
         for (int i = 0; i < sortedRevs.size(); i++) {
             RevisionInternal rev = sortedRevs.get(i);
             if (!rev.getDocID().equals(lastDocID)) {
                 lastDocID = rev.getDocID();
                 if (doc != null) {
-                    doc.delete();
+                    doc.free();
+                    doc = null;
                 }
                 try {
-                    doc = new VersionedDocument(forest, new Slice(lastDocID.getBytes()));
-                } catch (Exception e) {
-                    Log.w(TAG, "ForestDB Error: " + e.getMessage(), e);
+                    doc = forest.getDocument(rev.getDocID(), false);
+                } catch (ForestException e) {
+                    if(e.domain == C4ErrorDomain.ForestDBDomain && e.code == FDBErrors.FDB_RESULT_KEY_NOT_FOUND) {
+                    }else{
+                        Log.e(TAG, "Error in getDocument() docID="+rev.getRevID(), e);
+                    }
                     doc = null;
                 }
 
                 if (doc != null) {
                     try {
-                        if (doc.get(new RevIDBuffer(new Slice(rev.getRevID().getBytes()))) != null) {
+                        if(doc.selectRevID(rev.getRevID(), false)){
                             revs.remove(rev);
                             numRevisionsRemoved += 1;
                         }
@@ -554,88 +526,88 @@ public class ForestDBStore implements Store {
         }
 
         if (doc != null)
-            doc.delete();
-
+            doc.free();
 
         return numRevisionsRemoved;
     }
 
     @Override
     public Set<BlobKey> findAllAttachmentKeys() throws CouchbaseLiteException {
+        Log.w(TAG, "findAllAttachmentKeys()");
+        Set<BlobKey> keys = new HashSet<>();
         try {
-            Set<BlobKey> keys = new HashSet<BlobKey>();
-            DocEnumerator.Options options = new DocEnumerator.Options();
-            options.setContentOption(ContentOptions.kMetaOnly);
-            DocEnumerator e = new DocEnumerator(forest, new Slice(), new Slice(), options);
-            for (; e.next(); ) {
-                VersionedDocument doc = new VersionedDocument(forest, e.doc());
-                if (!doc.hasAttachments() || (doc.isDeleted() && !doc.isConflicted()))
-                    continue;
-                doc.read();
-                // Since db is assumed to have just been compacted, we know that non-current revisions
-                // won't have any bodies. So only scan the current revs.
-                VectorRevision revNodes = doc.currentRevisions();
-                for (int i = 0; i < revNodes.size(); i++) {
-                    Revision revNode = revNodes.get(i);
-                    if (revNode.isActive() && revNode.hasAttachments()) {
-                        Slice body = revNode.readBody();
-                        if (body.getSize() > 0) {
-                            Map<String, Object> docProperties = Manager.getObjectMapper().readValue(body.getBuf(), Map.class);
-                            if (docProperties.containsKey("_attachments")) {
-                                Map<String, Object> attachments = (Map<String, Object>) docProperties.get("_attachments");
-                                Iterator<String> itr = attachments.keySet().iterator();
-                                while (itr.hasNext()) {
-                                    String name = itr.next();
-                                    Map<String, Object> attachment = (Map<String, Object>) attachments.get(name);
-                                    String digest = (String) attachment.get("digest");
-                                    BlobKey key = new BlobKey(digest);
-                                    keys.add(key);
+            int iteratorFlags = IteratorFlags.kDefault;
+            iteratorFlags |= IteratorFlags.kInclusiveStart;
+            iteratorFlags |= IteratorFlags.kInclusiveEnd;
+            DocumentIterator itr = forest.iterator(null, null, 0, iteratorFlags);
+            if (itr != null) {
+                try {
+                    Document doc = null;
+                    while ((doc = itr.nextDocument()) != null) {
+                        if (!doc.hasAttachments() || (doc.deleted() && !doc.conflicted()))
+                            continue;
+                        do {
+                            if (doc.selectedRevHasAttachments()) {
+                                byte[] body = doc.getSelectedBody();
+                                if (body != null && body.length > 0) {
+                                    Map<String, Object> docProperties = Manager.getObjectMapper().readValue(body, Map.class);
+                                    if (docProperties.containsKey("_attachments")) {
+                                        Map<String, Object> attachments = (Map<String, Object>) docProperties.get("_attachments");
+                                        Iterator<String> itr2 = attachments.keySet().iterator();
+                                        while (itr2.hasNext()) {
+                                            String name = itr2.next();
+                                            Map<String, Object> attachment = (Map<String, Object>) attachments.get(name);
+                                            String digest = (String) attachment.get("digest");
+                                            BlobKey key = new BlobKey(digest);
+                                            keys.add(key);
+                                        }
+                                    }
                                 }
+
                             }
-                        }
+                        } while (doc.selectNextLeaf(true, false));
                     }
+                } finally {
+                    itr.free();
                 }
-                revNodes.delete();
-                doc.delete();
             }
-            e.delete();
-            return keys;
-        }catch(Exception e){
-            Log.e(TAG, "Error in findAllAttachmentKeys()", e);
-            return null;
         }
+        catch (ForestException e){
+            Log.e(TAG, "Error in findAllAttachmentKeys()", e);
+            throw new CouchbaseLiteException(e.code);
+        }
+        catch (IOException e){
+            Log.e(TAG, "Error in findAllAttachmentKeys()", e);
+            throw new CouchbaseLiteException(Status.UNKNOWN);
+        }
+        return keys;
     }
 
     @Override
     public Map<String, Object> getAllDocs(QueryOptions options) throws CouchbaseLiteException {
+        Log.w(TAG, "getAllDocs()");
+
         Map<String, Object> result = new HashMap<String, Object>();
         List<QueryRow> rows = new ArrayList<QueryRow>();
 
         if (options == null)
             options = new QueryOptions();
 
-        DocEnumerator.Options forestOpts = new DocEnumerator.Options();
         boolean includeDocs = (options.isIncludeDocs() || options.getPostFilter() != null);
-        forestOpts.setDescending(options.isDescending());
-        forestOpts.setInclusiveEnd(options.isInclusiveEnd());
-        if (!includeDocs
-                && !(options.getAllDocsMode() == Query.AllDocsMode.SHOW_CONFLICTS
-                || options.getAllDocsMode() == Query.AllDocsMode.ONLY_CONFLICTS))
-            forestOpts.setContentOption(ContentOptions.kMetaOnly);
-
         int limit = options.getLimit();
         int skip = options.getSkip();
         Predicate<QueryRow> filter = options.getPostFilter();
 
 
-        DocEnumerator e = null;
+        // No start or end ID:
         try {
+            DocumentIterator itr = null;
             if (options.getKeys() != null) {
-                VectorString docIDs = new VectorString();
-                for (Object docID : options.getKeys())
-                    docIDs.add((String) docID);
-                e = new DocEnumerator(forest, docIDs, forestOpts);
-            } else {
+                String[] docIDs = options.getKeys().toArray(new String[options.getKeys().size()]);
+                int iteratorFlags=IteratorFlags.kDefault;
+                itr = forest.iterator(docIDs, iteratorFlags);
+            }
+            else{
                 String startKey;
                 String endKey;
                 if (options.isDescending()) {
@@ -645,95 +617,102 @@ public class ForestDBStore implements Store {
                     startKey = (String) options.getStartKey();
                     endKey = (String) View.keyForPrefixMatch(options.getEndKey(), options.getPrefixMatchLevel());
                 }
-                e = new DocEnumerator(forest,
-                        startKey==null?new Slice():new Slice(startKey.getBytes()),
-                        endKey==null?new Slice():new Slice(endKey.getBytes()),
-                        forestOpts);
+
+                int iteratorFlags=IteratorFlags.kDefault;
+                if (options.isDescending())
+                    iteratorFlags |= IteratorFlags.kDescending;
+                if (!options.isInclusiveStart())
+                    iteratorFlags &= ~IteratorFlags.kInclusiveStart;
+                if (!options.isInclusiveEnd())
+                    iteratorFlags &= ~IteratorFlags.kInclusiveEnd;
+                iteratorFlags |= IteratorFlags.kIncludeDeleted;
+                if (includeDocs)
+                    iteratorFlags |= IteratorFlags.kIncludeBodies;
+
+                itr = forest.iterator(
+                        startKey,
+                        endKey,
+                        skip,
+                        iteratorFlags
+                        );
             }
-
-            while (e.next()) {
-                Document d = e.doc();
-                String docID = new String(d.getKey().getBuf());
-                if (!d.exists()) {
-                    Log.v(TAG, "AllDocs: No such row with key=\"%s\"", docID);
-                    QueryRow row = new QueryRow(null, 0, docID, null, null, null);
-                    rows.add(row);
-                    continue;
-                }
-
-
-                VersionedDocument doc = new VersionedDocument(forest, d);
-
-                // Currently cbforest wrapper does not support VersionedDocument::readMeta()
-                // This is reason that creating VersionedDocument instance always.
-                boolean deleted = false;
-                {
-                    short flags = doc.getFlags();
-                    deleted = (flags & VersionedDocument.kDeleted) != 0;
-                    if(deleted &&
-                            options.getAllDocsMode() != Query.AllDocsMode.INCLUDE_DELETED &&
-                            options.getKeys() == null)
-                        continue;
-                    if((flags & VersionedDocument.kConflicted) == 0 &&
-                            options.getAllDocsMode() == Query.AllDocsMode.ONLY_CONFLICTS)
-                        continue;
-                    if (skip > 0) {
-                        --skip;
+            try {
+                Document doc;
+                while ((doc = itr.nextDocument()) != null) {
+                    String docID = doc.getDocID();
+                    if (!doc.exists()) {
+                        Log.v(TAG, "AllDocs: No such row with key=\"%s\"", docID);
+                        QueryRow row = new QueryRow(null, 0, docID, null, null, null);
+                        rows.add(row);
                         continue;
                     }
+
+                    boolean deleted = false;
+                    {
+                        deleted = doc.deleted();
+                        if (deleted &&
+                                options.getAllDocsMode() != Query.AllDocsMode.INCLUDE_DELETED &&
+                                options.getKeys() == null)
+                            continue;
+                        if (!doc.conflicted() && options.getAllDocsMode() == Query.AllDocsMode.ONLY_CONFLICTS)
+                            continue;
+                        if (skip > 0) {
+                            --skip;
+                            continue;
+                        }
+                    }
+
+                    String revID = doc.getSelectedRevID();
+                    long sequence = doc.getSelectedSequence();
+
+                    RevisionInternal docRevision = null;
+                    if (includeDocs) {
+                        // Fill in the document contents:
+                        docRevision = ForestBridge.revisionObjectFromForestDoc(doc, null, true);
+                        if (docRevision == null)
+                            Log.w(TAG, "AllDocs: Unable to read body of doc %s", docID);
+                    }
+
+                    List<String> conflicts = new ArrayList<String>();
+                    if ((options.getAllDocsMode() == Query.AllDocsMode.SHOW_CONFLICTS
+                            || options.getAllDocsMode() == Query.AllDocsMode.ONLY_CONFLICTS)
+                            && doc.conflicted()) {
+                        conflicts = ForestBridge.getCurrentRevisionIDs(doc);
+                        if (conflicts != null && conflicts.size() == 1)
+                            conflicts = null;
+                    }
+
+                    Map<String, Object> value = new HashMap<String, Object>();
+                    value.put("rev", revID);
+                    if (deleted)
+                        value.put("deleted", (deleted ? true : null));
+                    value.put("_conflicts", conflicts);// (not found in CouchDB)
+
+                    Log.v(TAG, "AllDocs: Found row with key=\"%s\", value=%s", docID, value);
+
+                    QueryRow row = new QueryRow(docID,
+                            sequence,
+                            docID,
+                            value,
+                            docRevision,
+                            null);
+
+                    if (filter != null && !filter.apply(row)) {
+                        Log.v(TAG, "   ... on 2nd thought, filter predicate skipped that row");
+                        continue;
+                    }
+                    rows.add(row);
+
+                    doc.free();
+
+                    if (limit > 0 && --limit == 0)
+                        break;
                 }
-
-                //VersionedDocument doc = new VersionedDocument(forest, d);
-                String revID = new String(doc.getRevID().getBuf());
-                BigInteger sequence = doc.getSequence();
-
-                RevisionInternal docRevision = null;
-                if (includeDocs) {
-                    docRevision = ForestBridge.revisionObjectFromForestDoc(doc, null, true);
-                    if (docRevision == null)
-                        Log.w(TAG, "AllDocs: Unable to read body of doc %s", docID);
-                }
-
-                List<String> conflicts = new ArrayList<String>();
-                if ((options.getAllDocsMode() == Query.AllDocsMode.SHOW_CONFLICTS
-                        || options.getAllDocsMode() == Query.AllDocsMode.ONLY_CONFLICTS)
-                        && doc.isConflicted()) {
-                    conflicts = ForestBridge.getCurrentRevisionIDs(doc);
-                    if (conflicts != null && conflicts.size() == 1)
-                        conflicts = null;
-                }
-
-                Map<String, Object> value = new HashMap<String, Object>();
-                value.put("rev", revID);
-                if(deleted)
-                    value.put("deleted", (deleted ? true : null));
-                value.put("_conflicts", conflicts);// (not found in CouchDB)
-
-                Log.v(TAG, "AllDocs: Found row with key=\"%s\", value=%s", docID, value);
-
-                QueryRow row = new QueryRow(docID,
-                        sequence.longValue(),
-                        docID,
-                        value,
-                        docRevision,
-                        null);
-
-                if (filter != null && !filter.apply(row)){
-                    Log.v(TAG, "   ... on 2nd thought, filter predicate skipped that row");
-                    continue;
-                }
-                rows.add(row);
-
-                if(limit > 0 && --limit == 0)
-                    break;
+            } finally {
+                itr.free();
             }
-
-        }
-        catch(Exception ex) {
-            Log.e(TAG, "Error in getAllDocs()", ex);
-        }
-        finally {
-            if(e!=null) e.delete();
+        }catch (ForestException e){
+            Log.e(TAG, "Error in getAllDocs()", e);
         }
 
         result.put("rows", rows);
@@ -743,55 +722,56 @@ public class ForestDBStore implements Store {
     }
 
     @Override
-    public RevisionList changesSince(long lastSequence, ChangesOptions options, ReplicationFilter filter, Map<String, Object> filterParams) {
+    public RevisionList changesSince(long lastSequence,
+                                     ChangesOptions options,
+                                     ReplicationFilter filter,
+                                     Map<String, Object> filterParams) {
+        Log.w(TAG, "changesSince()　lastSequence=%d options=%s",lastSequence, options);
+
+        // http://wiki.apache.org/couchdb/HTTP_database_API#Changes
+        if (options == null) options = new ChangesOptions();
+        boolean withBody = (options.isIncludeDocs() || filter != null);
+        RevisionList changes = new RevisionList();
         try {
-            // http://wiki.apache.org/couchdb/HTTP_database_API#Changes
-            // Translate options to ForestDB:
-            if (options == null)
-                options = new ChangesOptions();
+            int iteratorFlags = IteratorFlags.kDefault;
+            iteratorFlags |= IteratorFlags.kIncludeDeleted;
+            iteratorFlags |= IteratorFlags.kIncludeBodies;
+            DocumentIterator itr = forest.iterateChanges(lastSequence, iteratorFlags);
+            try {
+                Document doc;
 
-            DocEnumerator.Options forestOpts = new DocEnumerator.Options();
-            forestOpts.setLimit(options.getLimit());
-            forestOpts.setInclusiveEnd(true);
-            forestOpts.setIncludeDeleted(false);
-            boolean withBody = (options.isIncludeDocs() || filter != null);
-            if (!withBody)
-                forestOpts.setContentOption(ContentOptions.kMetaOnly);
-
-            RevisionList changes = new RevisionList();
-            // TODO: DocEnumerator -> use long instead of BigInteger
-            BigInteger start = BigInteger.valueOf(lastSequence + 1);
-            BigInteger end = BigInteger.valueOf(Long.MAX_VALUE);
-            DocEnumerator e = new DocEnumerator(forest, start, end, forestOpts);
-            while (e.next()) {
-                VersionedDocument doc = new VersionedDocument(forest, e.doc());
-                List<String> revIDs;
-                if (options.isIncludeConflicts() && doc.isConflicted()) {
-                    if (forestOpts.getContentOption() == ContentOptions.kMetaOnly)
-                        doc.read();
-                    revIDs = ForestBridge.getCurrentRevisionIDs(doc);
-                } else {
-                    revIDs = new ArrayList<String>();
-                    revIDs.add(new String(doc.getRevID().getBuf()));
-                }
-
-                for (String revID : revIDs) {
-                    Log.w(TAG, "[changesSince()] revID => " + revID);
-                    RevisionInternal rev = ForestBridge.revisionObjectFromForestDoc(doc, revID, withBody);
-                    if (filter == null || delegate.runFilter(filter, filterParams, rev)) {
-                        if (!options.isIncludeDocs())
-                            rev.setBody(null);
-                        changes.add(rev);
+                while ((doc = itr.nextDocument()) != null) {
+                    Log.e(TAG, "[changesSince()] docID=%s seq=%d conflicted=%s", doc.getDocID(), doc.getSelectedSequence(), doc.conflicted());
+                    List<String> revIDs;
+                    if (options.isIncludeConflicts() && doc.conflicted()) {
+                        revIDs = ForestBridge.getCurrentRevisionIDs(doc);
+                    } else {
+                        revIDs = new ArrayList<>();
+                        revIDs.add(doc.getRevID());
                     }
+
+                    for (String revID : revIDs) {
+                        Log.w(TAG, "[changesSince()] revID => " + revID);
+                        RevisionInternal rev = ForestBridge.revisionObjectFromForestDoc(doc, revID, withBody);
+                        if (filter == null || delegate.runFilter(filter, filterParams, rev)) {
+                            if (!options.isIncludeDocs())
+                                rev.setBody(null);
+                            changes.add(rev);
+                        }
+                    }
+                    doc.free();
                 }
+
+            } finally {
+                itr.free();
             }
-            return changes;
-        }catch(Exception e){
+        }catch(ForestException e){
             Log.e(TAG, "Error in changesSince()", e);
             return null;
         }
-    }
+        return changes;
 
+    }
 
     ///////////////////////////////////////////////////////////////////////////
     // INSERTION / DELETION:
@@ -806,12 +786,12 @@ public class ForestDBStore implements Store {
                                 StorageValidation validationBlock,
                                 Status outStatus)
             throws CouchbaseLiteException {
-        //Log.w(TAG, "add()");
+        Log.w(TAG, "add()");
 
         if (outStatus != null)
             outStatus.setCode(Status.OK);
 
-        if (forest.isReadOnly()) {
+        if (readOnly) {
             throw new CouchbaseLiteException(Status.FORBIDDEN);
         }
 
@@ -832,54 +812,28 @@ public class ForestDBStore implements Store {
             String docID = inDocID;
             String prevRevID = inPrevRevID;
 
-            Document rawDoc = new Document();
-            if (docID != null && !docID.isEmpty()) {
-                // Read the doc from the database:
-                rawDoc.setKey(new Slice(docID.getBytes()));
-                try {
-                    forest.read(rawDoc);
-                } catch (Exception e) {
-                    try{
-                        throw new CouchbaseLiteException(Integer.parseInt(e.getMessage()));
-                    }catch (NumberFormatException nfe){
-                        throw new CouchbaseLiteException(Status.EXCEPTION);
-                    }
-                }
-            } else {
-                // Create new doc ID, and don't bother to read it since it's a new doc:
+            Document doc;
+            if (docID == null || docID.isEmpty())
                 docID = Misc.CreateUUID();
-                rawDoc.setKey(new Slice(docID.getBytes()));
-            }
-
-            // Parse the document revision tree:
-            VersionedDocument doc = null;
             try {
-                doc = new VersionedDocument(forest, rawDoc);
-            } catch (Exception e) {
-                Log.e(TAG, "ForestDB Error: " + e.getMessage(), e);
-                throw new CouchbaseLiteException(Status.EXCEPTION);
+                doc = forest.getDocument(docID, false);
+            } catch (ForestException e) {
+                Log.e(TAG, e.getMessage());
+                throw new CouchbaseLiteException(Status.DB_ERROR);
             }
-            Revision revNode;
 
             if (prevRevID != null) {
                 // Updating an existing revision; make sure it exists and is a leaf:
-                // TODO -> add VersionDocument.get(String revID)
-                //      -> or Efficiently pass RevID to VersionDocument.get(RevID)
-                //revNode = doc.get(new RevID(inPrevRevID));
-                Log.v(TAG, "[putDoc()] prevRevID => " + prevRevID);
                 try {
-                    revNode = doc.get(new RevIDBuffer(new Slice(inPrevRevID.getBytes())));
-                } catch (Exception e) {
-                    try{
-                        throw new CouchbaseLiteException(Integer.parseInt(e.getMessage()));
-                    }catch (NumberFormatException nfe){
-                        throw new CouchbaseLiteException(Status.EXCEPTION);
-                    }
+                    if (!doc.selectRevID(prevRevID, false))
+                        throw new CouchbaseLiteException(Status.NOT_FOUND);
+                    if (!allowConflict && !doc.selectedRevLeaf())
+                        throw new CouchbaseLiteException(Status.CONFLICT);
+                } catch (ForestException e) {
+                    Log.e(TAG, e.getMessage());
+                    throw new CouchbaseLiteException(Status.DB_ERROR);
                 }
-                if (revNode == null)
-                    throw new CouchbaseLiteException(Status.NOT_FOUND);
-                else if (!allowConflict && !revNode.isLeaf())
-                    throw new CouchbaseLiteException(Status.CONFLICT);
+
             } else {
                 // No parent revision given:
                 if (deleting) {
@@ -887,12 +841,11 @@ public class ForestDBStore implements Store {
                     throw new CouchbaseLiteException(doc.exists() ? Status.CONFLICT : Status.NOT_FOUND);
                 }
                 // If doc exists, current rev must be in a deleted state or there will be a conflict:
-                revNode = doc.currentRevision();
-                if (revNode != null) {
-                    if (revNode.isDeleted()) {
+                if (doc.selectCurrentRev()) {
+                    if(doc.selectedRevDeleted()){
                         // New rev will be child of the tombstone:
                         // (T0D0: Write a horror novel called "Child Of The Tombstone"!)
-                        prevRevID = new String(revNode.getRevID().getBuf());
+                        prevRevID = doc.getSelectedRevID();
                     } else {
                         throw new CouchbaseLiteException(Status.CONFLICT);
                     }
@@ -917,7 +870,7 @@ public class ForestDBStore implements Store {
                 // Fetch the previous revision and validate the new one against it:
                 RevisionInternal prevRev = null;
                 if (prevRevID != null)
-                    prevRev = new RevisionInternal(docID, prevRevID, revNode.isDeleted());
+                    prevRev = new RevisionInternal(docID, prevRevID, doc.selectedRevDeleted());
                 Status status = validationBlock.validate(putRev, prevRev, prevRevID);
                 if (status.isError()) {
                     outStatus.setCode(status.getCode());
@@ -925,28 +878,30 @@ public class ForestDBStore implements Store {
                 }
             }
 
-            // Add the revision to the database:
-            int status;
-            RevIDBuffer newrevid = new RevIDBuffer(new Slice(newRevID.getBytes()));
-            {
-                // TODO - add new RevIDBuffer(String)
-                // TODO - add RevTree.insert(String, String, boolean, boolean, RevID arg4, boolean)
-                Revision fdbRev = doc.insert(
-                        newrevid,
-                        new Slice(json),
-                        deleting,
-                        (putRev.getAttachments() != null),
-                        revNode,
-                        allowConflict);
-                outStatus.setCode(doc.getLatestHttpStatus());
-                if (fdbRev != null)
-                    putRev.setSequence(fdbRev.getSequence().longValue());
-                if (fdbRev == null && outStatus.isError())
-                    throw new CouchbaseLiteException(outStatus);
-            }
-            boolean isWinner = saveForest(doc, newrevid, properties);
-            putRev.setSequence(doc.getSequence().longValue());
+            try {
+                if(doc.insertRevision(newRevID, json, deleting, (putRev.getAttachments() != null), allowConflict)) {
+                    if(deleting)
+                        outStatus.setCode(Status.OK); // 200
+                    else
+                        outStatus.setCode(Status.CREATED); // 201 (created)
+                }
+                else
+                    outStatus.setCode(Status.OK); // 200 (already exists)
 
+            } catch (ForestException e) {
+                e.printStackTrace();
+                Log.e(TAG, "Error in insertRevision()", e);
+                throw new CouchbaseLiteException(e.code);
+            }
+
+            boolean isWinner = false;
+            try {
+                isWinner = saveForest(doc, newRevID, properties);
+            } catch (ForestException e) {
+                Log.e(TAG,"Error in saveForest()", e);
+                throw new CouchbaseLiteException(Status.DB_ERROR);
+            }
+            putRev.setSequence(doc.getSequence());
             change = changeWithNewRevision(putRev, isWinner, doc, null);
         } finally {
             endTransaction(outStatus.isSuccessful());
@@ -958,14 +913,19 @@ public class ForestDBStore implements Store {
         return putRev;
     }
 
+    /**
+     * Add an existing revision of a document (probably being pulled) plus its ancestors.
+     */
     @Override
     public void forceInsert(RevisionInternal inRev,
                             List<String> inHistory,
                             final StorageValidation validationBlock,
                             URL inSource)
-            throws CouchbaseLiteException {
+            throws CouchbaseLiteException
+    {
+        Log.w(TAG, "forceInsert()");
 
-        if (forest.isReadOnly())
+        if (readOnly)
             throw new CouchbaseLiteException(Status.FORBIDDEN);
 
         final byte[] json = inRev.getJson();
@@ -974,62 +934,54 @@ public class ForestDBStore implements Store {
 
         final RevisionInternal rev = inRev;
         final List<String> history = inHistory;
-        final URL source = inSource;
+        final URL source           = inSource;
 
         final DocumentChange[] change = new DocumentChange[1];
+
         Status status = inTransaction(new Task() {
             @Override
             public Status run() {
+
                 // First get the CBForest doc:
-                VersionedDocument doc = null;
+                Document doc = null;
                 try {
-                    doc = new VersionedDocument(forest, new Slice(rev.getDocID().getBytes()));
-                } catch (Exception e) {
+                    doc = forest.getDocument(rev.getDocID(), false);
+                    int common = doc.insertRevisionWithHistory(
+                            json,
+                            rev.isDeleted(),
+                            rev.getAttachments() != null,
+                            history.toArray(new String[history.size()])
+                    );
+                    if (common < 0)
+                        return new Status(Status.BAD_REQUEST); // generation numbers not in descending order
+                    else if (common == 0)
+                        return new Status(Status.OK); // No-op: No new revisions were inserted.
+                    // Validate against the common ancestor:
+                    if (validationBlock != null) {
+                        RevisionInternal prev = null;
+                        if (common < history.size()) {
+                            String revID = history.get(common);
+                            if (!doc.selectRevID(revID, false)) {
+                                Log.w(TAG, "Unable to select RevID: " + revID);
+                                return new Status(Status.BAD_REQUEST);
+                            }
+                            prev = new RevisionInternal(rev.getDocID(), revID, doc.deleted());
+                        }
+                        String parentRevID = (history.size() > 1) ? history.get(1) : null;
+                        Status status = validationBlock.validate(rev, prev, parentRevID);
+                        if (status.isError()) {
+                            return status;
+                        }
+                    }
+                    // Save updated doc back to the database:
+                    boolean isWinner = saveForest(doc, history.get(0), rev.getProperties());
+                    rev.setSequence(doc.getSelectedSequence());
+                    change[0] = changeWithNewRevision(rev, isWinner, doc, source);
+                    return new Status(Status.CREATED);
+                } catch (ForestException e) {
                     Log.e(TAG, "ForestDB Error: " + e.getMessage(), e);
                     return new Status(Status.UNKNOWN);
                 }
-
-                // Add the revision & ancestry to the doc:
-                VectorRevID historyVector = new VectorRevID();
-                convertRevIDs(history, historyVector);
-                int common = doc.insertHistory(historyVector,
-                        new Slice(json),
-                        rev.isDeleted(),
-                        rev.getAttachments() != null);
-                if(common < 0)
-                    return new Status(Status.BAD_REQUEST); // generation numbers not in descending order
-                else if(common == 0)
-                    return new Status(Status.OK); // No-op: No new revisions were inserted.
-
-                // Validate against the common ancestor:
-                // Validate against the latest common ancestor:
-                if (validationBlock != null) {
-                    RevisionInternal prev = null;
-                    if(common < history.size()){
-                        RevID revID = historyVector.get(common);
-                        Revision r = null;
-                        try {
-                            r = doc.get(revID);
-                        } catch (Exception e) {
-                            Log.e(TAG, "Error in forceInsert()", e);
-                            return new Status(Status.UNKNOWN);
-                        }
-                        boolean deleted = r.isDeleted();
-                        prev = new RevisionInternal(rev.getDocID(), history.get(common), deleted);
-                    }
-                    String parentRevID = (history.size() > 1) ? history.get(1) : null;
-                    Status status = validationBlock.validate(rev, prev, parentRevID);
-                    if (status.isError()) {
-                        return status;
-                    }
-                }
-
-                // Save updated doc back to the database:
-                boolean isWinner = saveForest(doc, historyVector.get(0), rev.getProperties());
-                rev.setSequence(doc.getSequence().longValue());
-                change[0] = changeWithNewRevision(rev, isWinner, doc, source);
-
-                return new Status(Status.OK);
             }
         });
 
@@ -1042,56 +994,62 @@ public class ForestDBStore implements Store {
 
     @Override
     public Map<String, Object> purgeRevisions(Map<String, List<String>> inDocsToRevs) {
+        Log.w(TAG, "purgeRevisions()");
+
         final Map<String, Object> result = new HashMap<String, Object>();
         final Map<String, List<String>> docsToRevs = inDocsToRevs;
         Status status = inTransaction(new Task() {
             @Override
             public Status run() {
                 for (String docID : docsToRevs.keySet()) {
-                    VersionedDocument doc = null;
+                    Document doc = null;
                     try {
-                        doc = new VersionedDocument(forest, new Slice(docID.getBytes()));
-                    } catch (Exception e) {
-                        Log.e(TAG, "ForestDB Error: " + e.getMessage(), e);
-                        return new Status(Status.UNKNOWN);
+                        doc = forest.getDocument(docID, true);
+                    } catch (ForestException e) {
+                        if (e.code == FDBErrors.FDB_RESULT_KEY_NOT_FOUND)
+                            return new Status(Status.NOT_FOUND);
+                        else {
+                            Log.e(TAG, "ForestDB Error", e);
+                            return new Status(Status.UNKNOWN);
+                        }
                     }
-                    if(!doc.exists())
-                        return new Status(Status.NOT_FOUND);
 
                     List<String> revsPurged = new ArrayList<String>();
-                    List<String> revIDs =  docsToRevs.get(docID);
+                    List<String> revIDs = docsToRevs.get(docID);
                     if (revIDs == null) {
                         return new Status(Status.BAD_PARAM);
                     } else if (revIDs.size() == 0) {
                         ; // nothing to do.
                     } else if (revIDs.contains("*")) {
                         // Delete all revisions if magic "*" revision ID is given:
-                        try{
-                            forestTransaction.del(doc.getDocID());
-                        }catch (Exception ex){
-                            Log.e(TAG, "Error in purgeRevisions()", ex);
-                            return new Status(Status.UNKNOWN);
+                        try {
+                            forest.purgeDoc(docID);
+                        } catch (ForestException e) {
+                            Log.e(TAG, "Error in purgeDoc() docID=" + docID, e);
+                            if (e.domain == C4ErrorDomain.HTTPDomain)
+                                return new Status(e.code);
+                            else
+                                return new Status(Status.UNKNOWN);
                         }
                         revsPurged.add("*");
                     } else {
                         List<String> purged = new ArrayList<String>();
-                        for(String revID : revIDs){
-                            if(doc.purge(new RevIDBuffer(new Slice(revID.getBytes()))) > 0 )
-                                purged.add(revID);
-                        }
-                        if(purged.size() > 0){
-                            if(doc.allRevisions().size() > 0){
-                                doc.save(forestTransaction);
-                                Log.v(TAG, "Purged doc '%s' revs %s", docID, revIDs);
-                            }else{
-                                try{
-                                    forestTransaction.del(doc.getDocID());
-                                }catch (Exception ex){
-                                    Log.e(TAG, "Error in purgeRevisions()", ex);
-                                    return new Status(Status.UNKNOWN);
-                                }
-                                Log.v(TAG, "Purged doc '%s'", docID);
+                        for (String revID : revIDs) {
+                            try {
+                                if (doc.purgeRevision(revID) > 0)
+                                    purged.add(revID);
+                            } catch (ForestException e) {
+                                Log.e(TAG, "error in purgeRevision()", e);
                             }
+                        }
+                        if (purged.size() > 0) {
+                            try {
+                                doc.save(maxRevTreeDepth);
+                            } catch (ForestException e) {
+                                Log.e(TAG, "Error in save()", e);
+                                return new Status(Status.UNKNOWN);
+                            }
+                            Log.v(TAG, "Purged doc '%s'", docID);
                         }
                         revsPurged = purged;
                     }
@@ -1101,6 +1059,7 @@ public class ForestDBStore implements Store {
             }
         });
         return result;
+
     }
 
     @Override
@@ -1128,34 +1087,42 @@ public class ForestDBStore implements Store {
 
     @Override
     public RevisionInternal getLocalDocument(String docID, String revID) {
+        Log.w(TAG, "getLocalDocument()");
 
         if(docID == null|| !docID.startsWith("_local/"))
             return null;
 
-        KeyStore localDocs = null;
+        byte[][] metaNbody = new byte[0][];
         try {
-            localDocs = new KeyStore(forest, "_local");
-        } catch (Exception e) {
-            Log.e(TAG, "error=%s", e.getMessage());
+            metaNbody = forest.rawGet("_local", docID);
+        } catch (ForestException e) {
+            // KEY NOT FOUND
+            if(e.domain == C4ErrorDomain.ForestDBDomain &&
+                    e.code == FDBErrors.FDB_RESULT_KEY_NOT_FOUND) {
+                Log.i(TAG, "[getLocalDocument()] docID(\"%s\") is not found", docID);
+            }
+            // Unexpected Error
+            else{
+                Log.e(TAG, "[getLocalDocument()] Unepected Error", e);
+            }
             return null;
         }
-        Document doc = null;
-        try {
-            doc = localDocs.get(new Slice(docID.getBytes()));
-        } catch (Exception e) {
-            Log.e(TAG, "error=%s", e.getMessage());
-            return null;
-        }
-        if(!doc.exists())
-            return null;
 
-        String gotRevID = new String(doc.getMeta().getBuf());
+        // meta -> revID
+        String gotRevID = new String(metaNbody[0]);
         if(revID!=null && !revID.equals(gotRevID))
             return null;
 
-        Map<String,Object> properties = getDocProperties(doc);
+        // body -> properties
+        Map<String,Object> properties = null;
+        try {
+            properties = Manager.getObjectMapper().readValue(metaNbody[1], Map.class);
+        } catch (IOException e) {
+            return null;
+        }
         if(properties == null)
             return null;
+
         properties.put("_id", docID);
         properties.put("_rev", gotRevID);
         RevisionInternal result = new RevisionInternal(docID, gotRevID, false);
@@ -1168,6 +1135,7 @@ public class ForestDBStore implements Store {
                                              final String prevRevID,
                                              final boolean obeyMVCC)
             throws CouchbaseLiteException {
+        Log.w(TAG, "putLocalRevision()");
 
         final String docID = revision.getDocID();
         if(!docID.startsWith("_local/")) {
@@ -1184,114 +1152,129 @@ public class ForestDBStore implements Store {
         }
         else {
             // PUT:
-            final KeyStore localDocs;
-            try {
-                localDocs = new KeyStore(forest, "_local");
-            } catch (Exception e) {
-                Log.e(TAG, "Error in putLocalRevision()", e);
-                throw new CouchbaseLiteException(Status.UNKNOWN);
-            }
+
             final RevisionInternal[] result = new RevisionInternal[1];
             Status status = inTransaction(new Task() {
                 @Override
                 public Status run() {
+
+
+                    //KeyStoreWriter localWriter = forestTransaction.toKeyStoreWriter(localDocs);
+                    byte[] json = revision.getJson();
+                    if (json == null)
+                        return new Status(Status.BAD_JSON);
+
+
+                    byte[][] metaNbody = null;
                     try {
-                        KeyStoreWriter localWriter = forestTransaction.toKeyStoreWriter(localDocs);
-                        byte[] json = revision.getJson();
-                        if (json == null)
-                            return new Status(Status.BAD_JSON);
-                        Slice key = new Slice(docID.getBytes());
-                        //Document doc = localWriter.get(key);
-                        Document doc = localDocs.get(key);
-                        int generation = RevisionInternal.generationFromRevID(prevRevID);
-                        if (obeyMVCC) {
-                            if (prevRevID != null) {
-                                if (!prevRevID.equals(new String(doc.getMeta().getBuf())))
-                                    return new Status(Status.CONFLICT);
-                                if (generation == 0)
-                                    return new Status(Status.BAD_ID);
-                            } else {
-                                if (doc.exists())
-                                    return new Status(Status.CONFLICT);
-                            }
-                        }
-                        String newRevID = String.format("%d-local", ++generation);
-                        localWriter.set(key, new Slice(newRevID.getBytes()), new Slice(json));
-                        result[0] = revision.copyWithDocID(docID, newRevID);
-                        return new Status(Status.CREATED);
-                    }catch(Exception e){
-                        Log.e(TAG, "Error in putLocalRevision()", e);
-                        return new Status(Status.UNKNOWN);
+                        metaNbody = forest.rawGet("_local", docID);
+                    } catch (ForestException e) {
                     }
+
+                    int generation = RevisionInternal.generationFromRevID(prevRevID);
+                    if (obeyMVCC) {
+                        if (prevRevID != null) {
+                            if (metaNbody != null && !prevRevID.equals(new String(metaNbody[0])))
+                                return new Status(Status.CONFLICT);
+                            if (generation == 0)
+                                return new Status(Status.BAD_ID);
+                        } else {
+                            if (metaNbody != null)
+                                return new Status(Status.CONFLICT);
+                        }
+                    }
+
+                    String newRevID = String.format("%d-local", ++generation);
+                    try {
+                        forest.rawPut("_local", docID, newRevID.getBytes(), json);
+                    } catch (ForestException e) {
+                        Log.e(TAG, "Error in putLocalRevision()", e);
+                        return new Status(e.code);
+                    }
+                    result[0] = revision.copyWithDocID(docID, newRevID);
+
+                    return new Status(Status.CREATED);
                 }
             });
+
             if(status.isSuccessful())
                 return result[0];
             else
                 throw new CouchbaseLiteException(status.getCode());
         }
+
     }
 
     ///////////////////////////////////////////////////////////////////////////
     // Internal (PROTECTED & PRIVATE) METHODS
     ///////////////////////////////////////////////////////////////////////////
 
-    private boolean saveForest(VersionedDocument doc, RevID revID, Map<String, Object> properties){
+    private boolean saveForest(Document doc,
+                               String revID,
+                               Map<String, Object> properties)
+            throws ForestException {
+
+        // after insertRevision, the selected revision is inserted revision.
+        // need to select current revision.
+        doc.selectCurrentRev();
+
         // Is the new revision the winner?
-        boolean isWinner = doc.currentRevision().getRevID().compare(revID) == 0;
+        boolean isWinner = doc.getSelectedRevID().equalsIgnoreCase(revID);
         // Update the documentType:
         if(!isWinner)
+            // TODO
             ;
-        if (properties != null && properties.containsKey("type")) {
-            String tmp = (String)properties.get("type");
-            Slice type = new Slice(tmp.getBytes());
-            doc.setDocType(type);
-        }
-        // Save:
-        doc.prune(maxRevTreeDepth);
-        doc.save(forestTransaction);
+        if (properties != null && properties.containsKey("type"))
+            doc.setType((String)properties.get("type"));
+
+        // save
+        doc.save(maxRevTreeDepth);
+
+        Log.w(TAG, "saveForest() END isWinner=" + isWinner);
+
         return isWinner;
     }
 
     private DocumentChange changeWithNewRevision(RevisionInternal inRev,
                                                  boolean isWinningRev,
-                                                 VersionedDocument doc,
+                                                 Document doc,
                                                  URL source){
+        Log.w(TAG, "changeWithNewRevision()");
         String winningRevID;
         if(isWinningRev)
             winningRevID = inRev.getRevID();
         else{
-            Revision winningRevision = doc.currentRevision();
-            winningRevID = new String(winningRevision.getRevID().getBuf());
+            winningRevID = doc.getSelectedRevID();
         }
-        return new DocumentChange(inRev, winningRevID, doc.hasConflict(), source);
+        return new DocumentChange(inRev, winningRevID, doc.conflicted(), source);
     }
 
     private boolean beginTransaction() {
-        transactionLevel.set(transactionLevel.get() + 1);
-        if(transactionLevel.get() == 1)
-            forestTransaction = new Transaction(forest);
+        Log.w(TAG, "beginTransaction()");
+        try {
+            forest.beginTransaction();
+        } catch (ForestException e) {
+            Log.e(TAG, "Failed to begin transaction", e);
+            return false;
+        }
         return true;
     }
 
     private boolean endTransaction(boolean commit) {
-        transactionLevel.set(transactionLevel.get() - 1);
-        if(transactionLevel.get() == 0){
-            if(!commit)
-                forestTransaction.abort();
-            forestTransaction.delete();
-            forestTransaction = null;
-            delegate.storageExitedTransaction(commit);
+        Log.w(TAG, "endTransaction() commit=" + commit);
+        try {
+            forest.endTransaction(commit);
+        } catch (ForestException e) {
+            Log.e(TAG, "Failed to end transaction", e);
+            return false;
         }
+        delegate.storageExitedTransaction(commit);
         return true;
     }
 
-    private static Map<String,Object> getDocProperties(Document doc){
-        byte[] bodyData = doc.getBody().getBuf();
-        if(bodyData == null)
-            return null;
+    private static Map<String,Object> getDocProperties(byte[] body){
         try {
-            return Manager.getObjectMapper().readValue(bodyData, Map.class);
+            return Manager.getObjectMapper().readValue(body, Map.class);
         } catch (IOException e) {
             return null;
         }
@@ -1304,6 +1287,8 @@ public class ForestDBStore implements Store {
      */
     private Status deleteLocalDocument(final String inDocID, String inRevID, boolean obeyMVCC)
     {
+        Log.w(TAG, "deleteLocalDocument()");
+
         final String docID = inDocID;
         final String revID = inRevID;
 
@@ -1315,56 +1300,33 @@ public class ForestDBStore implements Store {
             return new Status(getLocalDocument(docID, null) != null ?
                     Status.CONFLICT: Status.NOT_FOUND);
 
-        try {
-            final KeyStore localDocs = new KeyStore(forest, "_local");
-            return inTransaction(new Task() {
-                @Override
-                public Status run() {
-                    KeyStoreWriter localWriter = forestTransaction.toKeyStoreWriter(localDocs);
-                    try {
-                        Document doc = localDocs.get(new Slice(docID.getBytes()));
-                        if (!doc.exists()) {
-                            return new Status(Status.NOT_FOUND);
-                        } else if (!revID.equals(new String(doc.getMeta().getBuf()))) {
-                            return new Status(Status.CONFLICT);
-                        } else {
-                            localWriter.del(doc);
-                            return new Status(Status.OK);
-                        }
-                    } catch (Exception e) {
-                        Log.e(TAG, "Error in deleteLocalDocument()", e);
-                        return new Status(Status.UNKNOWN);
-                    } finally {
-                        localWriter.delete();
+        return inTransaction(new Task() {
+            @Override
+            public Status run() {
+                try {
+                    byte[][] metaNbody = forest.rawGet("_local", docID);
+                    if (metaNbody == null) {
+                        return new Status(Status.NOT_FOUND);
+                    } else if (!revID.equals(new String(metaNbody[0]))) {
+                        return new Status(Status.CONFLICT);
+                    } else {
+                        forest.rawPut("_local", docID, null, null);
+                        return new Status(Status.OK);
                     }
+                } catch (ForestException e) {
+                    Log.e(TAG, "Error in deleteLocalDocument()", e);
+                    return new Status(Status.UNKNOWN);
                 }
-            });
-        }catch(Exception e){
-            Log.e(TAG, "Error in deleteLocalDocument()", e);
-            return new Status(Status.UNKNOWN);
-        }
+            }
+        });
     }
-
-    /**
-     * CBLDatabase+Insertion.m
-     * static void convertRevIDs(NSArray* revIDs,
-     *                          std::vector<revidBuffer> &historyBuffers,
-     */
-    private static void convertRevIDs(List<String> history, VectorRevID historyVector){
-        for(String revID : history){
-            Log.w(TAG, "[ForestDBStore.convertRevIDs()] revID => " + revID);
-            //TODO add RevIDBuffer(String or byte[])
-            RevIDBuffer revidbuffer = new RevIDBuffer(new Slice(revID.getBytes()));
-            historyVector.add(revidbuffer);
-        }
-    }
-
 
     private interface Task{
         Status run();
     }
 
     private Status inTransaction(Task task) {
+        Log.w(TAG, "inTransaction(Task)");
         Status status = new Status(Status.OK);
         boolean commit = false;
         beginTransaction();
@@ -1374,6 +1336,7 @@ public class ForestDBStore implements Store {
         } finally {
             endTransaction(commit);
         }
+        Log.w(TAG, "inTransaction(Task) " + status);
         return status;
     }
 }
