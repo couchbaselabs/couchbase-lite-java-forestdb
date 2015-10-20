@@ -8,7 +8,6 @@ targetCompatibility = JavaVersion.VERSION_1_6
 
 buildscript {
     repositories {
-        //mavenCentral()
         jcenter()
     }
     dependencies {
@@ -47,23 +46,48 @@ android {
 
     sourceSets {
         main {
+            java.srcDirs = ['vendor/cbforest/Java/src', 'src/main/java']
             jni.srcDirs = [] // This prevents the auto generation of Android.mk
             jniLibs.srcDir file('libs') // This is not necessary unless you have precompiled libraries in your project.
         }
     }
 
+    task generateJniHeaders(type: Exec, description: 'Gnerate JNI C header files') {
+        def classpath      = "vendor/cbforest/Java/src"
+        def nativeIncludes = "vendor/cbforest/Java/jni"
+        commandLine "javah", "-d", "$nativeIncludes", "-classpath", "$classpath",
+                "com.couchbase.cbforest.Database",
+                "com.couchbase.cbforest.Document",
+                "com.couchbase.cbforest.DocumentIterator",
+                "com.couchbase.cbforest.ForestException",
+                "com.couchbase.cbforest.Logger",
+                "com.couchbase.cbforest.QueryIterator",
+                "com.couchbase.cbforest.View"
+    }
+
+    task cleanJniHeaders(type: Delete, description: 'Clean JNI C header files') {
+        delete "vendor/cbforest/Java/jni/com_couchbase_cbforest_Database.h"
+        delete "vendor/cbforest/Java/jni/com_couchbase_cbforest_Document.h"
+        delete "vendor/cbforest/Java/jni/com_couchbase_cbforest_DocumentIterator.h"
+        delete "vendor/cbforest/Java/jni/com_couchbase_cbforest_ForestException.h"
+        delete "vendor/cbforest/Java/jni/com_couchbase_cbforest_Logger.h"
+        delete "vendor/cbforest/Java/jni/com_couchbase_cbforest_QueryIterator.h"
+        delete "vendor/cbforest/Java/jni/com_couchbase_cbforest_View.h"
+    }
+
     // call regular ndk-build(.cmd) script from app directory
     task buildNative(type: Exec, description: 'Compile JNI source via NDK') {
-        println(android.ndkDirectory)
         def ndkDir = android.ndkDirectory
         commandLine "$ndkDir/ndk-build", '-C', file('jni').absolutePath
     }
+
+    buildNative.dependsOn 'generateJniHeaders'
 
     task cleanNative(type: Exec, description: 'Clean JNI object files') {
         def ndkDir = android.ndkDirectory
         commandLine "$ndkDir/ndk-build", '-C', file('jni').absolutePath, 'clean'
     }
-
+    cleanNative.dependsOn 'cleanJniHeaders'
     clean.dependsOn 'cleanNative'
 
     // Define a task for ndk-build
@@ -82,7 +106,6 @@ dependencies {
     androidTestCompile 'com.fasterxml.jackson.core:jackson-databind:2.6.0'
     androidTestCompile 'com.fasterxml.jackson.core:jackson-core:2.6.0'
     androidTestCompile 'com.fasterxml.jackson.core:jackson-annotations:2.6.0'
-
 }
 
 ////////////////////////////////////////////

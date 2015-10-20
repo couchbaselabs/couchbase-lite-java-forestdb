@@ -1,4 +1,4 @@
-<manifest package="com.couchbase.lite.cbforest">
+<manifest package="com.couchbase.cbforest">
     <application />
 </manifest>
 
