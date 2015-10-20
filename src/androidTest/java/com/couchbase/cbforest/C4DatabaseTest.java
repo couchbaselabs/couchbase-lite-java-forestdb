@@ -1,3 +1,17 @@
+/**
+ * Created by Hideki Itakura on 10/20/2015.
+ * Copyright (c) 2015 Couchbase, Inc All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the
+ * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific language governing permissions
+ * and limitations under the License.
+ */
 package com.couchbase.cbforest;
 
 import java.util.ArrayList;
@@ -6,8 +20,6 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * Created by hideki on 9/29/15.
- * <p/>
  * Ported from c4DatabaseTest.cc
  */
 public class C4DatabaseTest extends C4TestCase {
@@ -117,7 +129,6 @@ public class C4DatabaseTest extends C4TestCase {
         assertEquals(0, doc.getFlags());
         assertEquals(kDocID, doc.getDocID());
         assertNull(doc.getRevID());
-        assertNull(doc.getRevID());
         {
             boolean commit = false;
             db.beginTransaction();
@@ -127,7 +138,7 @@ public class C4DatabaseTest extends C4TestCase {
                 assertEquals(kRevID, doc.getSelectedRevID());
                 assertEquals(C4RevisionFlags.kRevNew | C4RevisionFlags.kRevLeaf, doc.getSelectedRevFlags());
                 assertTrue(Arrays.equals(kBody.getBytes(), doc.getSelectedBody()));
-                doc.save(20);
+                doc.save(20);   // 20 is default value of maxRevTreeDepth which is defined in Database.java and ForestDBStore.java
                 commit = true;
             } finally {
                 db.endTransaction(commit);
@@ -235,7 +246,6 @@ public class C4DatabaseTest extends C4TestCase {
         }
         revIDs.add(kRev2ID);
         revIDs.add(kRevID);
-        System.err.println(revIDs);
 
         int n;
         {
@@ -288,6 +298,7 @@ public class C4DatabaseTest extends C4TestCase {
             doc.free();
             i++;
         }
+        itr.free();
 
         // Start and end ID:
         itr = db.iterator("doc-007", "doc-090", 0, IteratorFlags.kDefault);
@@ -300,6 +311,7 @@ public class C4DatabaseTest extends C4TestCase {
             i++;
         }
         assertEquals(91, i);
+        itr.free();
 
         // Some docs, by ID:
         String[] docIDs = {"doc-042","doc-007","bogus","doc-001"};
@@ -315,6 +327,7 @@ public class C4DatabaseTest extends C4TestCase {
             i++;
         }
         assertEquals(4, i);
+        itr.free();
     }
 
     public void testChanges() throws ForestException {
@@ -338,6 +351,7 @@ public class C4DatabaseTest extends C4TestCase {
             seq++;
         }
         assertEquals(100L, seq);
+        itr.free();
 
         // Since 6:
         itr = new DocumentIterator(db._handle, 6, iteratorFlags);
@@ -351,5 +365,6 @@ public class C4DatabaseTest extends C4TestCase {
             seq++;
         }
         assertEquals(100L, seq);
+        itr.free();
     }
 }

@@ -1,11 +1,22 @@
+/**
+ * Created by Hideki Itakura on 10/20/2015.
+ * Copyright (c) 2015 Couchbase, Inc All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the
+ * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific language governing permissions
+ * and limitations under the License.
+ */
 package com.couchbase.cbforest;
 
 import java.io.File;
 import java.util.Arrays;
 
-/**
- * Created by hideki on 9/29/15.
- */
 public class C4ViewTest extends C4TestCase {
 
     public static final String TAG = C4ViewTest.class.getSimpleName();
@@ -59,7 +70,6 @@ public class C4ViewTest extends C4TestCase {
                 Document doc;
                 while ((doc = itr.nextDocument()) != null) {
                     Object[] keys = new Object[2];
-                    //Object[] values = new Object[2];
                     byte[][] values = new byte[2][];
                     keys[0] = doc.getDocID();
                     keys[1] = doc.getSelectedSequence();
