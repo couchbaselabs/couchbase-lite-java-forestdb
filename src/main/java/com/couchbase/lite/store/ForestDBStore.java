@@ -123,14 +123,14 @@ public class ForestDBStore implements Store, Constants {
     }
 
     @Override
-    public boolean open() {
+    public void open() throws CouchbaseLiteException {
         Log.w(TAG, "open()");
         int flags = (readOnly ? Database.ReadOnly : Database.Create) | Database.AutoCompact;
         try {
             forest = new Database(path, flags, 0, null);
         } catch (ForestException e) {
             Log.e(TAG, "Failed to open the forestdb: domain=%d, error=%d", e.domain, e.code, e);
-            return false;
+            throw new CouchbaseLiteException("Cannot create database", e, Status.DB_ERROR);
         }
 
         forest.setLogger(new Logger() {
@@ -139,8 +139,6 @@ public class ForestDBStore implements Store, Constants {
                 Log.w(TAG, message);
             }
         }, Logger.Debug);
-
-        return true;
     }
 
     @Override
