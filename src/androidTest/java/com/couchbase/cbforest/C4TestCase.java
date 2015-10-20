@@ -48,6 +48,7 @@ public class C4TestCase extends AndroidTestCase implements Constants{
     protected Database db = null;
     protected static final String kDocID = "mydoc";
     protected static final String kRevID = "1-abcdef";
+    protected static final String kRev2ID= "2-d00d3333";
     protected static final String kBody  = "{\"name\":007}";
 
     @Override

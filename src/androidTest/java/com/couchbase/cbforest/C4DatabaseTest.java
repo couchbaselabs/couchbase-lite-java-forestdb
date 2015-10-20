@@ -169,7 +169,6 @@ public class C4DatabaseTest extends C4TestCase {
     }
 
     public void testCreateMultipleRevisions() throws ForestException {
-        final String kRev2ID = "2-d00d3333";
         final String kBody2 = "{\"ok\":\"go\"}";
         createRev(kDocID, kRevID, kBody.getBytes());
         createRev(kDocID, kRev2ID, kBody2.getBytes());
@@ -228,7 +227,6 @@ public class C4DatabaseTest extends C4TestCase {
     }
 
     public void testInsertRevisionWithHistory() throws ForestException {
-        String kRev2ID = "2-d00d3333";
         String kBody2 = "{\"ok\":\"go\"}";
         createRev(kDocID, kRevID, kBody.getBytes());
         createRev(kDocID, kRev2ID, kBody2.getBytes());
@@ -330,6 +328,28 @@ public class C4DatabaseTest extends C4TestCase {
         itr.free();
     }
 
+    public void testAllDocsIncludeDeleted() throws ForestException {
+        setupAllDocs();
+        int iteratorFlags = IteratorFlags.kDefault;
+        iteratorFlags |= IteratorFlags.kIncludeDeleted;
+        DocumentIterator itr = db.iterator("doc-004", "doc-007", 0, iteratorFlags);
+        assertNotNull(itr);
+        Document doc;
+        int i = 4;
+        while ((doc = itr.nextDocument()) != null) {
+            String docID;
+            if(i == 6)
+                docID = "doc-005DEL";
+            else
+                docID = String.format("doc-%03d", i>=6?i-1:i);
+            assertEquals(docID, doc.getDocID());
+            doc.free();
+            i++;
+        }
+        assertEquals(9, i);
+        itr.free();
+    }
+
     public void testChanges() throws ForestException {
         for (int i = 1; i < 100; i++) {
             String docID = String.format("doc-%03d", i);
@@ -338,7 +358,7 @@ public class C4DatabaseTest extends C4TestCase {
 
         // Since start:
         int iteratorFlags = IteratorFlags.kDefault;
-        iteratorFlags |= IteratorFlags.kIncludeDeleted;
+        iteratorFlags  &= ~IteratorFlags.kIncludeBodies;
         DocumentIterator itr = new DocumentIterator(db._handle, 0, iteratorFlags);
         assertNotNull(itr);
         Document doc;
