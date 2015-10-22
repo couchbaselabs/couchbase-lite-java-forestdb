@@ -77,7 +77,7 @@ public class ForestBridge {
      * + (NSArray*) getCurrentRevisionIDs: (VersionedDocument&)doc
      */
     public static List<String> getCurrentRevisionIDs(Document doc) throws ForestException {
-        List<String> currentRevIDs = new ArrayList<>();
+        List<String> currentRevIDs = new ArrayList<String>();
         do {
             currentRevIDs.add(doc.getSelectedRevID());
         } while (doc.selectNextLeaf(false, false));
@@ -92,7 +92,7 @@ public class ForestBridge {
      * Instead of downcast, add docID parameter
      */
     public static List<RevisionInternal> getRevisionHistory(Document doc) {
-        List<RevisionInternal> history = new ArrayList<>();
+        List<RevisionInternal> history = new ArrayList<RevisionInternal>();
         do{
             RevisionInternal rev = new RevisionInternal(
                     doc.getDocID(),

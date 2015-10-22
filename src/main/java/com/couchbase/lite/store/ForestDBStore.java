@@ -187,7 +187,7 @@ public class ForestDBStore implements Store, Constants {
                 @Override
                 public boolean run() {
                     try {
-                        forest.rawPut("info", k, null, i.getBytes());
+                        forest.rawPut("info", k, null, i == null ? null : i.getBytes());
                     } catch (ForestException e) {
                         Log.e(TAG, "Error in KeyStoreWriter.set()", e);
                         return false;
@@ -453,7 +453,7 @@ public class ForestDBStore implements Store, Constants {
             return null;
         }
 
-        List<String> revIDs = new ArrayList<>();
+        List<String> revIDs = new ArrayList<String>();
         doc.selectCurrentRev();
         do{
             String revID = doc.getSelectedRevID();
@@ -534,7 +534,7 @@ public class ForestDBStore implements Store, Constants {
     @Override
     public Set<BlobKey> findAllAttachmentKeys() throws CouchbaseLiteException {
         Log.w(TAG, "findAllAttachmentKeys()");
-        Set<BlobKey> keys = new HashSet<>();
+        Set<BlobKey> keys = new HashSet<BlobKey>();
         try {
             int iteratorFlags = IteratorFlags.kDefault;
             iteratorFlags |= IteratorFlags.kInclusiveStart;
@@ -746,7 +746,7 @@ public class ForestDBStore implements Store, Constants {
                     if (options.isIncludeConflicts() && doc.conflicted()) {
                         revIDs = ForestBridge.getCurrentRevisionIDs(doc);
                     } else {
-                        revIDs = new ArrayList<>();
+                        revIDs = new ArrayList<String>();
                         revIDs.add(doc.getRevID());
                     }
 

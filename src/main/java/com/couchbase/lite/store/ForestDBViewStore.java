@@ -252,8 +252,8 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants{
                                     indexIt = false;
                                 if (doc.getDocID().startsWith("_design/"))
                                     indexIt = false;
-                                final List<Object> keys = new ArrayList<>();
-                                final List<byte[]> values = new ArrayList<>();
+                                final List<Object> keys = new ArrayList<Object>();
+                                final List<byte[]> values = new ArrayList<byte[]>();
                                 if (indexIt) {
                                     RevisionInternal rev = ForestBridge.revisionObjectFromForestDoc(doc, null, true);
                                     Mapper map = viewStorage.delegate.getMap();

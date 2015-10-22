@@ -237,7 +237,7 @@ public class C4DatabaseTest extends C4TestCase {
         // Add 18 revisions; the last two entries in the history repeat the two existing revs:
         Random r = new Random();
         int kHistoryCount = 20;
-        List<String> revIDs = new ArrayList<>();
+        List<String> revIDs = new ArrayList<String>();
         for(int i = kHistoryCount - 1; i >= 2; i--){
             String revID = String.format("%d-%08x", i + 1, r.nextInt());
             revIDs.add(revID);
