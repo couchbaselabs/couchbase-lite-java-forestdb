@@ -90,8 +90,8 @@ model {
     }
 
     toolChains {
-        clang(Clang)
         visualCpp(VisualCpp)
+        clang(Clang)
         gcc(Gcc)
     }
 
@@ -154,7 +154,18 @@ model {
                 }
             }
             binaries.withType(StaticLibraryBinary) {
-                cCompiler.args "-Wformat-security",
+                if(toolChain in VisualCpp){
+                    cCompiler.args "-std=gnu99",
+                        "-DSQLITE_ENABLE_FTS4",
+                        "-DSQLITE_ENABLE_FTS4_UNICODE61",
+                        "-DWITH_STEMMER_english",
+                        "-DDOC_COMP",
+                        "-D_DOC_COMP",
+                        "-fPIC"
+                }
+                else{
+                    // clang or gcc
+                    cCompiler.args "-Wformat-security",
                         "-Wmissing-declarations",
                         "-Woverriding-method-mismatch",
                         "-Wbool-conversion",
@@ -166,6 +177,7 @@ model {
                         "-DDOC_COMP",
                         "-D_DOC_COMP",
                         "-fPIC"
+                }
             }
             binaries.withType(SharedLibraryBinary) { binary ->
                 buildable = false
@@ -211,7 +223,6 @@ model {
                                 "vendor/cbforest/vendor/forestdb/src/fdb_errors.cc",
                                 "vendor/cbforest/vendor/forestdb/src/filemgr.cc",
                                 "vendor/cbforest/vendor/forestdb/src/filemgr_ops.cc",
-                                "vendor/cbforest/vendor/forestdb/src/filemgr_ops_linux.cc",
                                 "vendor/cbforest/vendor/forestdb/src/filemgr_ops_windows.cc",
                                 "vendor/cbforest/vendor/forestdb/src/forestdb.cc",
                                 "vendor/cbforest/vendor/forestdb/src/hash.cc",
@@ -275,7 +286,45 @@ model {
             }
 
             binaries.all{
-                cppCompiler.args "-Wformat-security",
+                // VisualCpp specific source files.
+                sources{
+                    if(toolChain in VisualCpp){
+                        cpp{
+                            source{
+                                srcDir "."
+                                include "vendor/cbforest/vendor/forestdb/utils/gettimeofday_vs.cc",
+                                    "vendor/cbforest/CBForest.VS2015/memmem.cc",
+                                    "vendor/cbforest/CBForest.VS2015/asprintf.c",
+                                    "vendor/cbforest/CBForest.VS2015/vasprintf-msvc.c"
+                            }
+                            exportedHeaders{
+                                srcDirs "vendor/cbforest/CBForest.VS2015"
+                            }
+                        }
+                    }
+                    else{
+                        cpp {
+                            source{
+                                srcDir "."
+                                include "vendor/cbforest/vendor/forestdb/src/filemgr_ops_linux.cc"
+                            }
+                        }
+                    }
+                }
+                if(toolChain in VisualCpp){
+                    cppCompiler.args "-DSQLITE_ENABLE_FTS4",
+                        "-DSQLITE_ENABLE_FTS4_UNICODE61",
+                        "-DWITH_STEMMER_english",
+                        "-D_DOC_COMP",
+                        "-DHAVE_GCC_ATOMICS=1",
+                        "-D__unused=",
+                        "-D_USE_MATH_DEFINES",
+                        "-D_FDB_TOOLS",
+                        "-D_USRDLL",
+                        "-D_ALLOW_KEYWORD_MACROS"
+                }
+                else{
+                    cppCompiler.args "-Wformat-security",
                         "-Wmissing-declarations",
                         "-Woverriding-method-mismatch",
                         "-Wbool-conversion",
@@ -288,6 +337,7 @@ model {
                         "-D_DOC_COMP",
                         "-DHAVE_GCC_ATOMICS=1",
                         "-D__unused="
+                }
 
                 if (targetPlatform.operatingSystem.macOsX) {
                     cppCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
@@ -297,6 +347,7 @@ model {
                     cppCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
                     cppCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include/linux"
                 } else if (targetPlatform.operatingSystem.windows) {
+                    linker.args 'Ws2_32.lib'
                     cppCompiler.args "-I${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
                     cppCompiler.args "-I${org.gradle.internal.jvm.Jvm.current().javaHome}/include/win32"
                 }
@@ -325,7 +376,7 @@ binaries.withType(SharedLibraryBinary) { binary ->
 }
 
 tasks.withType(Test) {
-    systemProperty "java.library.path", "./build/binaries/couchbaseLiteJavaForestDBSharedLibrary/"
+    systemProperty "java.library.path", "./build/binaries/couchbaseLiteJavaForestDBSharedLibrary/osx_x86_64/"
 }
 
 repositories {
