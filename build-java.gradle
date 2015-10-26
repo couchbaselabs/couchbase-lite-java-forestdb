@@ -302,7 +302,7 @@ model {
                             }
                         }
                     }
-                    else{
+                    else if(toolChain in Clang) {
                         cpp {
                             source{
                                 srcDir "."
@@ -310,6 +310,15 @@ model {
                             }
                         }
                     }
+                    else if(toolChain in Gcc) {
+                        cpp {
+                            source{
+                                srcDir "."
+                                include "vendor/cbforest/vendor/forestdb/src/filemgr_ops_linux.cc"
+                            }
+                        }
+                    }
+
                 }
                 if(toolChain in VisualCpp){
                     cppCompiler.args "-DSQLITE_ENABLE_FTS4",
@@ -376,7 +385,7 @@ binaries.withType(SharedLibraryBinary) { binary ->
 }
 
 tasks.withType(Test) {
-    systemProperty "java.library.path", "./build/binaries/couchbaseLiteJavaForestDBSharedLibrary/osx_x86_64/"
+    systemProperty "java.library.path", "./build/binaries/couchbaseLiteJavaForestDBSharedLibrary/windows_x86_64/"
 }
 
 repositories {
