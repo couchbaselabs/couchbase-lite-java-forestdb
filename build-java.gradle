@@ -400,9 +400,9 @@ dependencies {
             'com.couchbase.lite:couchbase-lite-java-core:' + version
 
     testCompile group: 'junit', name: 'junit', version: '4.11'
-    testCompile 'com.fasterxml.jackson.core:jackson-databind:2.6.0'
-    testCompile 'com.fasterxml.jackson.core:jackson-core:2.6.0'
-    testCompile 'com.fasterxml.jackson.core:jackson-annotations:2.6.0'
+    testCompile 'com.fasterxml.jackson.core:jackson-databind:2.5.0'
+    testCompile 'com.fasterxml.jackson.core:jackson-core:2.5.0'
+    testCompile 'com.fasterxml.jackson.core:jackson-annotations:2.5.0'
 }
 
 

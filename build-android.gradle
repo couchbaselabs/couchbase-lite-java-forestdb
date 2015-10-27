@@ -103,9 +103,9 @@ dependencies {
             project(':libraries:couchbase-lite-java-core') :
             'com.couchbase.lite:couchbase-lite-java-core:' + version
 
-    androidTestCompile 'com.fasterxml.jackson.core:jackson-databind:2.6.0'
-    androidTestCompile 'com.fasterxml.jackson.core:jackson-core:2.6.0'
-    androidTestCompile 'com.fasterxml.jackson.core:jackson-annotations:2.6.0'
+    androidTestCompile 'com.fasterxml.jackson.core:jackson-databind:2.5.0'
+    androidTestCompile 'com.fasterxml.jackson.core:jackson-core:2.5.0'
+    androidTestCompile 'com.fasterxml.jackson.core:jackson-annotations:2.5.0'
 }
 
 ////////////////////////////////////////////
