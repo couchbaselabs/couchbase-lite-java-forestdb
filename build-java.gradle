@@ -104,6 +104,7 @@ model {
             targetPlatform "linux_amd64"
             targetPlatform "windows_x86"
             targetPlatform "windows_x86_64"
+            targetPlatform "windows_amd64"
             sources {
                 c {
                     source {
@@ -192,6 +193,7 @@ model {
             targetPlatform "linux_amd64"
             targetPlatform "windows_x86"
             targetPlatform "windows_x86_64"
+            targetPlatform "windows_amd64"
             sources {
                 cpp {
                     lib library: 'Tokenizer', linkage: 'static'
