@@ -19,7 +19,6 @@ import com.couchbase.cbforest.Database;
 import com.couchbase.cbforest.Document;
 import com.couchbase.cbforest.DocumentIterator;
 import com.couchbase.cbforest.ForestException;
-import com.couchbase.cbforest.Logger;
 import com.couchbase.lite.BlobKey;
 import com.couchbase.lite.ChangesOptions;
 import com.couchbase.lite.CouchbaseLiteException;
@@ -132,13 +131,6 @@ public class ForestDBStore implements Store, Constants {
             Log.e(TAG, "Failed to open the forestdb: domain=%d, error=%d", e.domain, e.code, e);
             throw new CouchbaseLiteException("Cannot create database", e, Status.DB_ERROR);
         }
-
-        forest.setLogger(new Logger() {
-            @Override
-            public void log(int level, String message) {
-                Log.w(TAG, message);
-            }
-        }, Logger.Debug);
     }
 
     @Override
