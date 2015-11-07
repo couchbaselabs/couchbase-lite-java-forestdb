@@ -53,6 +53,11 @@ task cleanJniHeaders(type: Delete, description: 'Clean JNI C header files') {
     delete "vendor/cbforest/Java/jni/com_couchbase_cbforest_View.h"
 }
 clean.dependsOn 'cleanJniHeaders'
+
+build.doLast {
+    cleanJniHeaders.execute()
+}
+
 model {
     platforms {
         osx_x86 {
