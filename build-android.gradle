@@ -82,6 +82,9 @@ android {
     }
 
     buildNative.dependsOn 'generateJniHeaders'
+    buildNative.doLast {
+        cleanJniHeaders.execute()
+    }
 
     task cleanNative(type: Exec, description: 'Clean JNI object files') {
         def ndkDir = android.ndkDirectory
