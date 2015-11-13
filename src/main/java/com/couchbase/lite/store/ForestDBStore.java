@@ -586,6 +586,7 @@ public class ForestDBStore implements Store, Constants {
             options = new QueryOptions();
 
         boolean includeDocs = (options.isIncludeDocs() || options.getPostFilter() != null);
+        boolean includeDeletedDocs = (options.getAllDocsMode() == Query.AllDocsMode.INCLUDE_DELETED);
         int limit = options.getLimit();
         int skip = options.getSkip();
         Predicate<QueryRow> filter = options.getPostFilter();
@@ -617,9 +618,10 @@ public class ForestDBStore implements Store, Constants {
                     iteratorFlags &= ~IteratorFlags.kInclusiveStart;
                 if (!options.isInclusiveEnd())
                     iteratorFlags &= ~IteratorFlags.kInclusiveEnd;
-                iteratorFlags |= IteratorFlags.kIncludeDeleted;
-                if (includeDocs)
-                    iteratorFlags |= IteratorFlags.kIncludeBodies;
+                if(includeDeletedDocs)
+                    iteratorFlags |= IteratorFlags.kIncludeDeleted;
+                if (!includeDocs)
+                    iteratorFlags &= ~IteratorFlags.kIncludeBodies;
 
                 itr = forest.iterator(
                         startKey,
