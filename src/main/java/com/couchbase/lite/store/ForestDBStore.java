@@ -585,7 +585,10 @@ public class ForestDBStore implements Store, Constants {
         if (options == null)
             options = new QueryOptions();
 
-        boolean includeDocs = (options.isIncludeDocs() || options.getPostFilter() != null);
+        boolean includeDocs = (options.isIncludeDocs() ||
+                options.getPostFilter() != null ||
+                options.getAllDocsMode() == Query.AllDocsMode.SHOW_CONFLICTS ||
+                options.getAllDocsMode() == Query.AllDocsMode.ONLY_CONFLICTS);
         boolean includeDeletedDocs = (options.getAllDocsMode() == Query.AllDocsMode.INCLUDE_DELETED);
         int limit = options.getLimit();
         int skip = options.getSkip();
