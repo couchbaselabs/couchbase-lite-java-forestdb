@@ -135,6 +135,7 @@ LOCAL_SRC_FILES :=	$(SQLITE3_PATH)/fts3_unicode2.c \
 					$(FORESTDB_PATH)/src/kv_instance.cc \
 					$(FORESTDB_PATH)/src/list.cc \
 					$(FORESTDB_PATH)/src/snapshot.cc \
+					$(FORESTDB_PATH)/src/staleblock.cc \
 					$(FORESTDB_PATH)/src/transaction.cc \
 					$(FORESTDB_PATH)/src/version.cc \
 					$(FORESTDB_PATH)/src/wal.cc \
@@ -160,6 +161,8 @@ LOCAL_SRC_FILES :=	$(SQLITE3_PATH)/fts3_unicode2.c \
 					$(CBFOREST_PATH)/Tokenizer.cc \
 					$(CBFOREST_C_PATH)/c4.c \
 					$(CBFOREST_C_PATH)/c4Database.cc \
+					$(CBFOREST_C_PATH)/c4Document.cc \
+					$(CBFOREST_C_PATH)/c4Key.cc \
 					$(CBFOREST_C_PATH)/c4View.cc \
 					$(CBFOREST_JNI_PATH)/native_database.cc \
 					$(CBFOREST_JNI_PATH)/native_document.cc \
