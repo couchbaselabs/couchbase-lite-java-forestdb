@@ -96,7 +96,6 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants{
     ///////////////////////////////////////////////////////////////////////////
 
     protected ForestDBViewStore(ForestDBStore dbStore, String name, boolean create) throws CouchbaseLiteException{
-        Log.w(TAG, "ForestDBViewStore()");
         this._dbStore = dbStore;
         this.name = name;
         this._path = new File(dbStore.directory, viewNameToFileName(name)).getPath();
@@ -118,19 +117,16 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants{
 
     @Override
     public boolean rowValueIsEntireDoc(byte[] valueData) {
-        Log.e(TAG, "rowValueIsEntireDoc()");
         return false;
     }
 
     @Override
     public Object parseRowValue(byte[] valueData) {
-        Log.e(TAG, "parseRowValue()");
         return null;
     }
 
     @Override
     public Map<String, Object> getDocumentProperties(String docID, long sequence) {
-        Log.e(TAG, "getDocumentProperties()");
         return null;
     }
 
@@ -151,19 +147,16 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants{
 
     @Override
     public void close() {
-        Log.w(TAG, "ForestDBViewStore.close()");
         closeIndex();
     }
 
     @Override
     public void deleteIndex() {
-        Log.w(TAG, "deleteIndex()");
         if(_index!=null) _index.closeView();
     }
 
     @Override
     public void deleteView() {
-        Log.w(TAG, "ForestDBViewStore.deleteView()");
         closeIndex();
         FileDirUtils.deleteRecursive(new File(_path));
     }
@@ -175,7 +168,6 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants{
 
     @Override
     public int getTotalRows() {
-        Log.w(TAG, "ForestDBViewStore.getTotalRows()");
         try {
             openIndex();
         } catch (ForestException e) {
@@ -187,7 +179,6 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants{
 
     @Override
     public long getLastSequenceIndexed() {
-        Log.w(TAG, "ForestDBViewStore.getLastSequenceIndexed()");
         try {
             openIndex(); // in case the _mapVersion changed, invalidating the _index
         } catch (ForestException e) {
@@ -199,7 +190,6 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants{
 
     @Override
     public long getLastSequenceChangedAt() {
-        Log.w(TAG, "getLastSequenceChangedAt()");
         try {
             openIndex(); // in case the _mapVersion changed, invalidating the _index
         } catch (ForestException e) {
@@ -211,13 +201,10 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants{
 
     @Override
     public void updateIndex() throws CouchbaseLiteException {
-        Log.w(TAG, "ForestDBViewStore.updateIndex()");
         updateIndex(Arrays.asList(this));
     }
 
     private int updateIndex(List<ForestDBViewStore> views) throws CouchbaseLiteException {
-        Log.w(TAG, "ForestDBViewStore.updateIndex(List)");
-
         for(ForestDBViewStore viewStorage : views) {
             try {
                 viewStorage.openIndex();
@@ -297,7 +284,6 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants{
 
     @Override
     public List<QueryRow> regularQuery(QueryOptions options) throws CouchbaseLiteException {
-        Log.w(TAG, "ForestDBViewStore.regularQuery(QueryOptions)");
         try {
             openIndex();
         } catch (ForestException e) {
@@ -390,8 +376,6 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants{
      */
     @Override
     public List<QueryRow> reducedQuery(QueryOptions options) throws CouchbaseLiteException {
-        Log.w(TAG, "ForestDBViewStore.reducedQuery(QueryOptions)");
-
         Predicate<QueryRow> postFilter = options.getPostFilter();
 
         int groupLevel = options.getGroupLevel();
@@ -475,7 +459,6 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants{
 
     @Override
     public List<Map<String, Object>> dump() {
-        Log.w(TAG, "ForestDBViewStore.dump()");
         try {
             openIndex();
         } catch (ForestException e) {
