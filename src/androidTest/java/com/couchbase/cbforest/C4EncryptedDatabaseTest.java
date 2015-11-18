@@ -16,7 +16,8 @@ package com.couchbase.cbforest;
 
 public class C4EncryptedDatabaseTest extends C4DatabaseTest{
 
-    static final int algorithm = -1; /* Database.AES256Encryption; */
+    //static final int algorithm = -1; // FAKE encryption
+    static final int  algorithm = Database.AES256Encryption;
     /**
      * For now, the AES encryption mode (kC4EncryptionAES) is only implemented for Apple platforms.
      * It should be easy to hook it up to other platforms’ native crypto APIs, though; see forestdb/utils/crypto_primitives.h.
