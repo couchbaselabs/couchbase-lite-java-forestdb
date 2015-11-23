@@ -471,7 +471,7 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants{
         try {
             itr = runForestQuery(new QueryOptions());
             while (itr.next()) {
-                Map<String, Object> dict = new HashMap<>();
+                Map<String, Object> dict = new HashMap<String, Object>();
                 dict.put("key", new String(itr.keyJSON()));
 
                 byte[] bytes = itr.valueJSON();
