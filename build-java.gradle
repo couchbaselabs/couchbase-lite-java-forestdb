@@ -368,7 +368,8 @@ model {
                         "-D_USE_MATH_DEFINES",
                         "-D_FDB_TOOLS",
                         "-D_USRDLL",
-                        "-D_ALLOW_KEYWORD_MACROS"
+                        "-D_ALLOW_KEYWORD_MACROS",
+                            "-DCBFOREST_EXPORTS"
                 }
                 else{
                     cppCompiler.args "-Wformat-security",
