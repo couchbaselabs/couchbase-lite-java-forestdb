@@ -2,6 +2,13 @@
 LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
+LOCAL_MODULE := libcrypto
+LOCAL_SRC_FILES := $(LOCAL_PATH)/../vendor/cbforest/vendor/openssl/libs/android/$(TARGET_ARCH_ABI)/libcrypto.a
+include $(PREBUILT_STATIC_LIBRARY)
+
+
+
+include $(CLEAR_VARS)
 
 LOCAL_MODULE	:=	CouchbaseLiteJavaForestDB
 
@@ -9,6 +16,7 @@ FORESTDB_PATH   :=  $(LOCAL_PATH)/../vendor/cbforest/vendor/forestdb
 SNAPPY_PATH     :=  $(LOCAL_PATH)/../vendor/cbforest/vendor/snappy
 SQLITE3_PATH   	:=  $(LOCAL_PATH)/../vendor/cbforest/vendor/sqlite3-unicodesn
 SQLITE_INC_PATH :=  $(LOCAL_PATH)/../vendor/sqlite
+OPENSSL_PATH    :=  $(LOCAL_PATH)/../vendor/cbforest/vendor/openssl/libs/include
 CBFOREST_PATH   :=  $(LOCAL_PATH)/../vendor/cbforest/CBForest
 CBFOREST_C_PATH  :=  $(LOCAL_PATH)/../vendor/cbforest/C
 CBFOREST_JAVA_PATH  :=  $(LOCAL_PATH)/../vendor/cbforest/Java
@@ -17,7 +25,9 @@ CBFOREST_JNI_PATH   :=  $(LOCAL_PATH)/../vendor/cbforest/Java/jni
 LOCAL_CFLAGS    :=  -I$(SQLITE3_PATH)/libstemmer_c/runtime/ \
 					-I$(SQLITE3_PATH)/libstemmer_c/src_c/ \
 					-I$(SQLITE3_PATH)/ \
-					-I$(SQLITE_INC_PATH)/
+					-I$(SQLITE_INC_PATH)/ \
+					-I$(OPENSSL_PATH)/
+
 
 # For sqlite3-unicodesn
 LOCAL_CFLAGS	+=	-DSQLITE_ENABLE_FTS4 \
@@ -25,7 +35,8 @@ LOCAL_CFLAGS	+=	-DSQLITE_ENABLE_FTS4 \
 					-DWITH_STEMMER_english \
 					-DDOC_COMP \
 					-D_DOC_COMP \
-					-DHAVE_GCC_ATOMICS=1
+					-DHAVE_GCC_ATOMICS=1 \
+					-D_CRYPTO_OPENSSL
 
 LOCAL_CPPFLAGS	:= 	-I$(FORESTDB_PATH)/include/ \
 					-I$(FORESTDB_PATH)/include/libforestdb/ \
@@ -33,6 +44,7 @@ LOCAL_CPPFLAGS	:= 	-I$(FORESTDB_PATH)/include/ \
 					-I$(FORESTDB_PATH)/utils/ \
 					-I$(FORESTDB_PATH)/option/ \
 					-I$(SNAPPY_PATH)/ \
+					-I$(OPENSSL_PATH)/ \
 					-I$(CBFOREST_PATH)/ \
 					-I$(CBFOREST_C_PATH)/ \
 					-I$(CBFOREST_JNI_PATH)/
@@ -170,5 +182,7 @@ LOCAL_SRC_FILES :=	$(SQLITE3_PATH)/fts3_unicode2.c \
 					$(CBFOREST_JNI_PATH)/native_glue.cc \
 					$(CBFOREST_JNI_PATH)/native_queryIterator.cc \
 					$(CBFOREST_JNI_PATH)/native_view.cc
+
+LOCAL_STATIC_LIBRARIES := libcrypto
 					
 include $(BUILD_SHARED_LIBRARY)

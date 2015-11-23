@@ -99,6 +99,32 @@ model {
         clang(Clang)
         gcc(Gcc)
     }
+    
+    repositories {
+        libs(PrebuiltLibraries) {
+            libcrypto {
+                headers.srcDir "vendor/cbforest/vendor/openssl/libs/include"
+                binaries.withType(StaticLibraryBinary) {
+                    def platformName = targetPlatform.name
+                    def os = targetPlatform.operatingSystem;
+                    def osName = os.name
+                    def arch = targetPlatform.architecture.name.replaceAll("-", "_")
+                    if (platformName == "windows_amd64" || platformName == "linux_amd64") {
+                        arch = "amd64"
+                    }
+                    def libName = os.windows ? "libeay32.lib" : "libcrypto.a"
+                    def libPath = ""
+                    if (osName == "osx") {
+                        // Using the universal library:
+                        libPath = "vendor/cbforest/vendor/openssl/libs/${osName}/${libName}"
+                    } else {
+                        libPath = "vendor/cbforest/vendor/openssl/libs/${osName}/${arch}/${libName}"
+                    }
+                    staticLibraryFile = file(libPath)
+                }
+            }
+        }
+    }
 
     components {
         Tokenizer(NativeLibrarySpec) {
@@ -239,6 +265,7 @@ model {
                                 "vendor/cbforest/vendor/forestdb/src/kv_instance.cc",
                                 "vendor/cbforest/vendor/forestdb/src/list.cc",
                                 "vendor/cbforest/vendor/forestdb/src/snapshot.cc",
+                                "vendor/cbforest/vendor/forestdb/src/staleblock.cc",
                                 "vendor/cbforest/vendor/forestdb/src/transaction.cc",
                                 "vendor/cbforest/vendor/forestdb/src/version.cc",
                                 "vendor/cbforest/vendor/forestdb/src/wal.cc",
@@ -264,6 +291,8 @@ model {
                                 "vendor/cbforest/CBForest/Tokenizer.cc",
                                 "vendor/cbforest/C/c4.c",
                                 "vendor/cbforest/C/c4Database.cc",
+                                "vendor/cbforest/C/c4Document.cc",
+                                "vendor/cbforest/C/c4Key.cc",
                                 "vendor/cbforest/C/c4View.cc",
                                 "vendor/cbforest/Java/jni/native_database.cc",
                                 "vendor/cbforest/Java/jni/native_document.cc",
@@ -286,6 +315,7 @@ model {
                                 "vendor/cbforest/CBForest",
                                 "vendor/cbforest/C"
                     }
+                    lib library: 'libcrypto', linkage: 'static'
                 }
                 binaries.withType(StaticLibraryBinary) { binary ->
                     buildable = false
@@ -334,6 +364,7 @@ model {
                         "-D_DOC_COMP",
                         "-DHAVE_GCC_ATOMICS=1",
                         "-D__unused=",
+                        "-D_CRYPTO_OPENSSL",
                         "-D_USE_MATH_DEFINES",
                         "-D_FDB_TOOLS",
                         "-D_USRDLL",
@@ -352,7 +383,8 @@ model {
                         "-DWITH_STEMMER_english",
                         "-D_DOC_COMP",
                         "-DHAVE_GCC_ATOMICS=1",
-                        "-D__unused="
+                        "-D__unused=",
+                        "-D_CRYPTO_OPENSSL"
                 }
 
                 if (targetPlatform.operatingSystem.macOsX) {
@@ -409,8 +441,6 @@ dependencies {
     testCompile 'com.fasterxml.jackson.core:jackson-core:2.5.0'
     testCompile 'com.fasterxml.jackson.core:jackson-annotations:2.5.0'
 }
-
-
 
 ////////////////////////////////////////////
 // For Maven
