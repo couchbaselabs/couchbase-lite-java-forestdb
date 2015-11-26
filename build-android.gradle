@@ -52,7 +52,14 @@ android {
         }
     }
 
-    task generateJniHeaders(type: Exec, description: 'Gnerate JNI C header files') {
+    task generateForestDBStoreJniHeaders(type: Exec, description: 'Generate ForestDBStore JNI header files') {
+        def classpath      = "src/main/java"
+        def nativeIncludes = "jni/source"
+        commandLine "javah", "-d", "$nativeIncludes", "-classpath", "$classpath",
+                "com.couchbase.lite.store.ForestDBStore"
+    }
+
+    task generateCBForestJniHeaders(type: Exec, description: 'Generate CBForest JNI C header files') {
         def classpath      = "vendor/cbforest/Java/src"
         def nativeIncludes = "vendor/cbforest/Java/jni"
         commandLine "javah", "-d", "$nativeIncludes", "-classpath", "$classpath",
@@ -64,6 +71,7 @@ android {
                 "com.couchbase.cbforest.QueryIterator",
                 "com.couchbase.cbforest.View"
     }
+    generateCBForestJniHeaders.dependsOn 'generateForestDBStoreJniHeaders'
 
     task cleanJniHeaders(type: Delete, description: 'Clean JNI C header files') {
         delete "vendor/cbforest/Java/jni/com_couchbase_cbforest_Database.h"
@@ -81,7 +89,7 @@ android {
         commandLine "$ndkDir/ndk-build", '-C', file('jni').absolutePath
     }
 
-    buildNative.dependsOn 'generateJniHeaders'
+    buildNative.dependsOn 'generateCBForestJniHeaders'
     buildNative.doLast {
         cleanJniHeaders.execute()
     }

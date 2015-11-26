@@ -33,6 +33,9 @@ import com.couchbase.lite.Reducer;
 import com.couchbase.lite.Status;
 import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.support.FileDirUtils;
+import com.couchbase.lite.support.action.Action;
+import com.couchbase.lite.support.action.ActionBlock;
+import com.couchbase.lite.support.action.ActionException;
 import com.couchbase.lite.util.Log;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
@@ -45,7 +48,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants{
+public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
     public static String TAG = Log.TAG_VIEW;
 
     public static final String  kViewIndexPathExtension = "viewindex";
@@ -157,8 +160,7 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants{
 
     @Override
     public void deleteView() {
-        closeIndex();
-        FileDirUtils.deleteRecursive(new File(_path));
+        deleteViewFiles();
     }
 
     @Override
@@ -541,6 +543,11 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants{
         }
     }
 
+    private boolean deleteViewFiles() {
+        closeIndex();
+        return FileDirUtils.deleteRecursive(new File(_path));
+    }
+
     private static String viewNames(List<ForestDBViewStore> views) {
         StringBuffer sb = new StringBuffer();
         for (ForestDBViewStore view : views) {
@@ -590,6 +597,36 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants{
                     startKeyDocID,
                     endKeyDocID);
         }
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Internal (Package) Methods
+    ///////////////////////////////////////////////////////////////////////////
+
+    Action getActionToChangeEncryptionKey() {
+        Action action = new Action();
+        action.add(
+            new ActionBlock() {
+                @Override
+                public void execute() throws ActionException {
+                    if (!deleteViewFiles()) {
+                        throw new ActionException("Cannot delete view files");
+                    }
+                }
+            },
+            new ActionBlock() {
+                @Override
+                public void execute() throws ActionException {
+                    try {
+                        openIndex(Database.Create);
+                    } catch (ForestException e) {
+                        throw new ActionException("Cannot open index", e);
+                    }
+                    closeIndex();
+                }
+            }
+        );
+        return action;
     }
 
     ///////////////////////////////////////////////////////////////////////////

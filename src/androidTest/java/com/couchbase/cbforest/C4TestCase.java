@@ -54,15 +54,18 @@ public class C4TestCase extends AndroidTestCase implements Constants{
     @Override
     protected void setUp() throws Exception {
         super.setUp();
-
-        deleteFile("forest_temp.fdb");
-        deleteFile("forest_temp.fdb.0");
-        deleteFile("forest_temp.fdb.1");
-        deleteFile("forest_temp.fdb.meta");
-
+        deleteDatabaseFile(DB_FILENAME);
         File dbFile = new File(mContext.getFilesDir(), DB_FILENAME);
         db = new Database(dbFile.getPath(), Database.Create, encryptionAlgorithm(), encryptionKey());
     }
+
+    protected void deleteDatabaseFile(String dbFileName) {
+        deleteFile(dbFileName);
+        deleteFile(dbFileName + ".0");
+        deleteFile(dbFileName + ".1");
+        deleteFile(dbFileName + ".meta");
+    }
+
     private void deleteFile(String filename){
         File file = new File(mContext.getFilesDir(), filename);
         if (file.exists()) {

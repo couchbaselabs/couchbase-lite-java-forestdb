@@ -14,6 +14,10 @@
  */
 package com.couchbase.cbforest;
 
+import junit.framework.Assert;
+
+import java.io.File;
+
 public class C4EncryptedDatabaseTest extends C4DatabaseTest{
 
     //static final int algorithm = -1; // FAKE encryption
@@ -48,4 +52,42 @@ public class C4EncryptedDatabaseTest extends C4DatabaseTest{
         assertEquals(2, metaNbody.length);
     }
 
+    public void testUnEncryptedDatabase() throws Exception {
+        // Create an unencrypted database:
+        String dbFileName = "forest_temp_unencrypted.fdb";
+        deleteDatabaseFile(dbFileName);
+        File dbFile = new File(mContext.getFilesDir(), dbFileName);
+        int flag = Database.Create | Database.AutoCompact;
+        Database unEnDb = new Database(dbFile.getPath(), flag, Database.NoEncryption, null);
+
+        // Add an document:
+        final String store = "test";
+        final String key = "key";
+        final String meta = "meta";
+        boolean commit = false;
+        unEnDb.beginTransaction();
+        try {
+            unEnDb.rawPut(store, key, meta.getBytes(), kBody.getBytes());
+            commit = true;
+        } finally {
+            unEnDb.endTransaction(commit);
+        }
+
+        // Close database:
+        unEnDb.free();
+        unEnDb = null;
+
+        // Open database with an encryption key:
+        ForestException error = null;
+        try {
+            unEnDb = new Database(dbFile.getPath(), flag, Database.AES256Encryption, encryptionKey);
+        } catch (ForestException e) {
+            error = e;
+        }
+        assertNull(unEnDb);
+        assertNotNull(error);
+        assertEquals(FDBErrors.FDB_RESULT_NO_DB_HEADERS, error.code);
+
+        deleteDatabaseFile(dbFileName);
+    }
 }

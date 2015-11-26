@@ -26,7 +26,15 @@ sourceSets {
 ////////////////////////////////////////////
 // For Native
 ////////////////////////////////////////////
-task generateJniHeaders(type: Exec, description: 'Gnerate JNI C header files') {
+task generateForestDBStoreJniHeaders(type: Exec, description: 'Generate ForestDBStore JNI C header files') {
+    def classpath      = "src/main/java"
+    def nativeIncludes = "jni/source"
+    commandLine "javah", "-d", "$nativeIncludes", "-classpath", "$classpath",
+            "com.couchbase.lite.store.ForestDBStore"
+    dependsOn classes
+}
+
+task generateCBForestJniHeaders(type: Exec, description: 'Generate CBForest JNI C header files') {
     def classpath      = "vendor/cbforest/Java/src"
     def nativeIncludes = "vendor/cbforest/Java/jni"
     commandLine "javah", "-d", "$nativeIncludes", "-classpath", "$classpath",
@@ -38,10 +46,10 @@ task generateJniHeaders(type: Exec, description: 'Gnerate JNI C header files') {
             "com.couchbase.cbforest.QueryIterator",
             "com.couchbase.cbforest.View"
 
-    dependsOn classes
+    dependsOn generateForestDBStoreJniHeaders
 }
 
-classes.finalizedBy generateJniHeaders
+classes.finalizedBy generateCBForestJniHeaders
 
 task cleanJniHeaders(type: Delete, description: 'Clean JNI C header files') {
     delete "vendor/cbforest/Java/jni/com_couchbase_cbforest_Database.h"
@@ -299,7 +307,8 @@ model {
                                 "vendor/cbforest/Java/jni/native_documentiterator.cc",
                                 "vendor/cbforest/Java/jni/native_glue.cc",
                                 "vendor/cbforest/Java/jni/native_queryIterator.cc",
-                                "vendor/cbforest/Java/jni/native_view.cc"
+                                "vendor/cbforest/Java/jni/native_view.cc",
+                                "jni/source/com_couchbase_lite_store_ForestDBStore.cpp"
                     }
                     exportedHeaders {
                         srcDirs "vendor/cbforest/vendor/sqlite3-unicodesn/libstemmer_c/runtime",
@@ -313,7 +322,8 @@ model {
                                 "vendor/cbforest/vendor/forestdb",
                                 "vendor/cbforest/vendor/snappy",
                                 "vendor/cbforest/CBForest",
-                                "vendor/cbforest/C"
+                                "vendor/cbforest/C",
+                                "jni/source"
                     }
                     lib library: 'libcrypto', linkage: 'static'
                 }
@@ -391,6 +401,7 @@ model {
                 if (targetPlatform.operatingSystem.macOsX) {
                     cppCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
                     cppCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include/darwin"
+                    cppCompiler.args '-DCBL_KEY_CRYPTO_CC'
                     linker.args '-framework', "JavaVM"
                 } else if (targetPlatform.operatingSystem.linux) {
                     cppCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"

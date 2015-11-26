@@ -21,6 +21,7 @@ CBFOREST_PATH   :=  $(LOCAL_PATH)/../vendor/cbforest/CBForest
 CBFOREST_C_PATH  :=  $(LOCAL_PATH)/../vendor/cbforest/C
 CBFOREST_JAVA_PATH  :=  $(LOCAL_PATH)/../vendor/cbforest/Java
 CBFOREST_JNI_PATH   :=  $(LOCAL_PATH)/../vendor/cbforest/Java/jni
+FORESTDB_STORE_PATH :=  $(LOCAL_PATH)/source
 
 LOCAL_CFLAGS    :=  -I$(SQLITE3_PATH)/libstemmer_c/runtime/ \
 					-I$(SQLITE3_PATH)/libstemmer_c/src_c/ \
@@ -47,7 +48,8 @@ LOCAL_CPPFLAGS	:= 	-I$(FORESTDB_PATH)/include/ \
 					-I$(OPENSSL_PATH)/ \
 					-I$(CBFOREST_PATH)/ \
 					-I$(CBFOREST_C_PATH)/ \
-					-I$(CBFOREST_JNI_PATH)/
+					-I$(CBFOREST_JNI_PATH)/ \
+					-I$(FORESTDB_STORE_PATH)/
 
 LOCAL_CPPFLAGS	+=	-std=c++11
 LOCAL_CPPFLAGS	+=	-fexceptions
@@ -181,7 +183,8 @@ LOCAL_SRC_FILES :=	$(SQLITE3_PATH)/fts3_unicode2.c \
 					$(CBFOREST_JNI_PATH)/native_documentiterator.cc \
 					$(CBFOREST_JNI_PATH)/native_glue.cc \
 					$(CBFOREST_JNI_PATH)/native_queryIterator.cc \
-					$(CBFOREST_JNI_PATH)/native_view.cc
+					$(CBFOREST_JNI_PATH)/native_view.cc \
+					$(FORESTDB_STORE_PATH)/com_couchbase_lite_store_ForestDBStore.cpp
 
 LOCAL_STATIC_LIBRARIES := libcrypto
 					
