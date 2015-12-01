@@ -36,6 +36,10 @@ import com.couchbase.lite.TransactionalTask;
 import com.couchbase.lite.View;
 import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.support.RevisionUtils;
+import com.couchbase.lite.support.action.Action;
+import com.couchbase.lite.support.action.ActionBlock;
+import com.couchbase.lite.support.action.ActionException;
+import com.couchbase.lite.support.security.SymmetricKey;
 import com.couchbase.lite.util.Log;
 import com.couchbase.lite.util.NativeLibUtils;
 
@@ -52,7 +56,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class ForestDBStore implements Store, Constants {
+public class ForestDBStore implements Store, EncryptableStore, Constants {
 
     public static String TAG = Log.TAG_DATABASE;
 
@@ -88,6 +92,10 @@ public class ForestDBStore implements Store, Constants {
     private int maxRevTreeDepth;
     private boolean autoCompact;
     private boolean readOnly = false;
+    private SymmetricKey encryptionKey;
+
+    // Native method for deriving PBDDF2-SHA256 key:
+    private static native byte[] nativeDerivePBKDF2SHA256Key(String password, byte[] salt, int rounds);
 
     ///////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -123,11 +131,26 @@ public class ForestDBStore implements Store, Constants {
 
     @Override
     public void open() throws CouchbaseLiteException {
+        // Flag:
         int flags = (readOnly ? Database.ReadOnly : Database.Create) | Database.AutoCompact;
+
+        // Encryption:
+        int enAlgorithm = Database.NoEncryption;
+        byte[] enKey = null;
+        if (encryptionKey != null) {
+            enAlgorithm = Database.AES256Encryption;
+            enKey = encryptionKey.getKey();
+        }
+
         try {
-            forest = new Database(path, flags, 0, null);
+            forest = new Database(path, flags, enAlgorithm, enKey);
         } catch (ForestException e) {
             Log.e(TAG, "Failed to open the forestdb: domain=%d, error=%d", e.domain, e.code, e);
+            if(e.domain == C4ErrorDomain.ForestDBDomain &&
+                    (e.code == FDBErrors.FDB_RESULT_NO_DB_HEADERS ||
+                     e.code == FDBErrors.FDB_RESULT_CRYPTO_ERROR)) {
+                throw new CouchbaseLiteException("Cannot create database", e, Status.UNAUTHORIZED);
+            }
             throw new CouchbaseLiteException("Cannot create database", e, Status.DB_ERROR);
         }
     }
@@ -1236,8 +1259,7 @@ public class ForestDBStore implements Store, Constants {
      *                              revisionID: (NSString*)revID
      *                                obeyMVCC: (BOOL)obeyMVCC;
      */
-    private Status deleteLocalDocument(final String inDocID, String inRevID, boolean obeyMVCC)
-    {
+    private Status deleteLocalDocument(final String inDocID, String inRevID, boolean obeyMVCC) {
         final String docID = inDocID;
         final String revID = inRevID;
 
@@ -1268,6 +1290,83 @@ public class ForestDBStore implements Store, Constants {
                 }
             }
         });
+    }
+
+    @Override
+    public void setEncryptionKey(SymmetricKey key) {
+        encryptionKey = key;
+    }
+
+    @Override
+    public SymmetricKey getEncryptionKey() {
+        return encryptionKey;
+    }
+
+    @Override
+    public Action actionToChangeEncryptionKey(final SymmetricKey newKey) {
+        Action action = new Action();
+
+        // Re-key the views!
+        List<String> viewNames = getAllViewNames();
+        for (String viewName : viewNames) {
+            ForestDBViewStore viewStorage = (ForestDBViewStore) getViewStorage(viewName, true);
+            action.add(viewStorage.getActionToChangeEncryptionKey());
+        }
+
+        // Re-key the database:
+        final SymmetricKey oldKey = encryptionKey;
+        action.add(
+            new ActionBlock() {
+                @Override
+                public void execute() throws ActionException {
+                    int algorithm = Database.NoEncryption;
+                    byte[] key = null;
+                    if (newKey != null) {
+                        algorithm = Database.AES256Encryption;
+                        key = newKey.getKey();
+                    }
+                    try {
+                        forest.rekey(algorithm, key);
+                        setEncryptionKey(newKey);
+                    } catch (ForestException e) {
+                        throw new ActionException("Cannot rekey to the new key", e);
+                    }
+                }
+            },
+            new ActionBlock() {
+                @Override
+                public void execute() throws ActionException {
+                    int algorithm = Database.NoEncryption;
+                    byte[] key = null;
+                    if (oldKey != null) {
+                        algorithm = Database.AES256Encryption;
+                        key = newKey.getKey();
+                    }
+                    try {
+                        // From https://github.com/couchbase/couchbase-lite-ios/blob/master/Source/CBL_ForestDBStorage.mm#L255-L262
+                        // FIX: This can potentially fail. If it did, the database would be lost.
+                        // It would be safer to save & restore the old db file, the one that got replaced
+                        // during rekeying, but the ForestDB API doesn't allow preserving it...
+                        forest.rekey(algorithm, key);
+                        setEncryptionKey(oldKey);
+                    } catch (ForestException e) {
+                        throw new ActionException("Cannot rekey to the old key", e);
+                    }
+                }
+            }, null
+        );
+
+        return action;
+    }
+
+    @Override
+    public byte[] derivePBKDF2SHA256Key(String password, byte[] salt, int rounds)
+            throws CouchbaseLiteException {
+        byte[] key = nativeDerivePBKDF2SHA256Key(password, salt, rounds);
+        if (key == null)
+            throw new CouchbaseLiteException("Cannot derive key for the password",
+                    Status.BAD_REQUEST);
+        return key;
     }
 
     private interface Task{
