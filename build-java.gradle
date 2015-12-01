@@ -325,7 +325,6 @@ model {
                                 "vendor/cbforest/C",
                                 "jni/source"
                     }
-                    lib library: 'libcrypto', linkage: 'static'
                 }
                 binaries.withType(StaticLibraryBinary) { binary ->
                     buildable = false
@@ -334,24 +333,24 @@ model {
 
             binaries.all{
                 // VisualCpp specific source files.
-                sources{
+                sources {
                     if(toolChain in VisualCpp){
-                        cpp{
-                            source{
+                        cpp {
+                            source {
                                 srcDir "."
                                 include "vendor/cbforest/vendor/forestdb/utils/gettimeofday_vs.cc",
                                     "vendor/cbforest/CBForest.VS2015/memmem.cc",
                                     "vendor/cbforest/CBForest.VS2015/asprintf.c",
                                     "vendor/cbforest/CBForest.VS2015/vasprintf-msvc.c"
                             }
-                            exportedHeaders{
+                            exportedHeaders {
                                 srcDirs "vendor/cbforest/CBForest.VS2015"
                             }
                         }
                     }
                     else if(toolChain in Clang) {
                         cpp {
-                            source{
+                            source {
                                 srcDir "."
                                 include "vendor/cbforest/vendor/forestdb/src/filemgr_ops_linux.cc"
                             }
@@ -359,15 +358,15 @@ model {
                     }
                     else if(toolChain in Gcc) {
                         cpp {
-                            source{
+                            source {
                                 srcDir "."
                                 include "vendor/cbforest/vendor/forestdb/src/filemgr_ops_linux.cc"
                             }
                         }
                     }
-
                 }
-                if(toolChain in VisualCpp){
+
+                if(toolChain in VisualCpp) {
                     cppCompiler.args "-DSQLITE_ENABLE_FTS4",
                         "-DSQLITE_ENABLE_FTS4_UNICODE61",
                         "-DWITH_STEMMER_english",
@@ -379,8 +378,7 @@ model {
                         "-D_USRDLL",
                         "-D_ALLOW_KEYWORD_MACROS",
                             "-DCBFOREST_EXPORTS"
-                }
-                else{
+                } else {
                     cppCompiler.args "-Wformat-security",
                         "-Wmissing-declarations",
                         "-Woverriding-method-mismatch",
@@ -396,19 +394,30 @@ model {
                         "-D__unused="
                 }
 
+                // For osx, link with commoncrypto, otherwise with libcrypto:
+                if (targetPlatform.operatingSystem.macOsX) {
+                    cppCompiler.args '-D_CRYPTO_CC'
+                    linker.args '-L/usr/lib/system', '-lcommonCrypto'
+                } else {
+                    cppCompiler.args '-D_CRYPTO_OPENSSL'
+                    sources { 
+                        cpp {
+                            lib library: 'libcrypto', linkage: 'static'
+                        }
+                    }
+                }
+
+                // JNI Compiler and linker options:
                 if (targetPlatform.operatingSystem.macOsX) {
                     cppCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
                     cppCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include/darwin"
-                    cppCompiler.args '-D_CRYPTO_OPENSSL'
                     linker.args '-framework', "JavaVM"
                 } else if (targetPlatform.operatingSystem.linux) {
                     cppCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
                     cppCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include/linux"
-                    cppCompiler.args '-D_CRYPTO_OPENSSL'
                 } else if (targetPlatform.operatingSystem.windows) {
                     cppCompiler.args "-I${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
                     cppCompiler.args "-I${org.gradle.internal.jvm.Jvm.current().javaHome}/include/win32"
-                    cppCompiler.args '-D_CRYPTO_OPENSSL'
                     linker.args 'Ws2_32.lib'
                 }
             }
