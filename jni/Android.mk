@@ -184,7 +184,7 @@ LOCAL_SRC_FILES :=	$(SQLITE3_PATH)/fts3_unicode2.c \
 					$(CBFOREST_JNI_PATH)/native_glue.cc \
 					$(CBFOREST_JNI_PATH)/native_queryIterator.cc \
 					$(CBFOREST_JNI_PATH)/native_view.cc \
-					$(FORESTDB_STORE_PATH)/com_couchbase_lite_store_ForestDBStore.cpp
+					$(FORESTDB_STORE_PATH)/native_forestdbstore.cc
 
 LOCAL_STATIC_LIBRARIES := libcrypto
 					

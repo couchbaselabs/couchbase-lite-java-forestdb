@@ -308,7 +308,7 @@ model {
                                 "vendor/cbforest/Java/jni/native_glue.cc",
                                 "vendor/cbforest/Java/jni/native_queryIterator.cc",
                                 "vendor/cbforest/Java/jni/native_view.cc",
-                                "jni/source/com_couchbase_lite_store_ForestDBStore.cpp"
+                                "jni/source/native_forestdbstore.cc"
                     }
                     exportedHeaders {
                         srcDirs "vendor/cbforest/vendor/sqlite3-unicodesn/libstemmer_c/runtime",
@@ -374,7 +374,6 @@ model {
                         "-D_DOC_COMP",
                         "-DHAVE_GCC_ATOMICS=1",
                         "-D__unused=",
-                        "-D_CRYPTO_OPENSSL",
                         "-D_USE_MATH_DEFINES",
                         "-D_FDB_TOOLS",
                         "-D_USRDLL",
@@ -394,22 +393,23 @@ model {
                         "-DWITH_STEMMER_english",
                         "-D_DOC_COMP",
                         "-DHAVE_GCC_ATOMICS=1",
-                        "-D__unused=",
-                        "-D_CRYPTO_OPENSSL"
+                        "-D__unused="
                 }
 
                 if (targetPlatform.operatingSystem.macOsX) {
                     cppCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
                     cppCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include/darwin"
-                    cppCompiler.args '-DCBL_KEY_CRYPTO_CC'
+                    cppCompiler.args '-D_CRYPTO_CC'
                     linker.args '-framework', "JavaVM"
                 } else if (targetPlatform.operatingSystem.linux) {
                     cppCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
                     cppCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include/linux"
+                    cppCompiler.args '-D_CRYPTO_OPENSSL'
                 } else if (targetPlatform.operatingSystem.windows) {
-                    linker.args 'Ws2_32.lib'
                     cppCompiler.args "-I${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
                     cppCompiler.args "-I${org.gradle.internal.jvm.Jvm.current().javaHome}/include/win32"
+                    cppCompiler.args '-D_CRYPTO_OPENSSL'
+                    linker.args 'Ws2_32.lib'
                 }
             }
         }

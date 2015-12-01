@@ -1298,6 +1298,11 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
     }
 
     @Override
+    public SymmetricKey getEncryptionKey() {
+        return encryptionKey;
+    }
+
+    @Override
     public Action actionToChangeEncryptionKey(final SymmetricKey newKey) {
         Action action = new Action();
 

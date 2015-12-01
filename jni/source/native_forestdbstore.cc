@@ -3,18 +3,18 @@
 #include "com_couchbase_lite_store_ForestDBStore.h"
 
 
-#if !defined (CBL_KEY_CRYPTO_CC) \
-&& !defined (CBL_KEY_CRYPTO_OPENSSL)
-#define CBL_KEY_CRYPTO_OPENSSL
+#if !defined (_CRYPTO_CC) \
+&& !defined (_CRYPTO_OPENSSL)
+#define _CRYPTO_OPENSSL
 #endif
 
-#if defined (CBL_KEY_CRYPTO_CC)
+#if defined (_CRYPTO_CC)
 
 #import <CommonCrypto/CommonCrypto.h>
 
 JNIEXPORT jbyteArray JNICALL Java_com_couchbase_lite_store_ForestDBStore_nativeDerivePBKDF2SHA256Key
 (JNIEnv* env, jclass clazz, jstring password, jbyteArray salt, jint rounds) {
-    if (password == NULL || salt == NULL)
+    if (password == NULL || salt == NULL || rounds < 1)
         return NULL;
     
     // Password:
@@ -28,7 +28,7 @@ JNIEXPORT jbyteArray JNICALL Java_com_couchbase_lite_store_ForestDBStore_nativeD
     
     // PBKDF2-SHA256
     int outputSize = 32; //256 bit
-    unsigned char* output = new unsigned char[outputSize * 2];
+    unsigned char* output = new unsigned char[outputSize];
     int status = CCKeyDerivationPBKDF(kCCPBKDF2,
                                       passwordCStr, passwordSize,
                                       saltBytes, saltSize,
@@ -40,8 +40,10 @@ JNIEXPORT jbyteArray JNICALL Java_com_couchbase_lite_store_ForestDBStore_nativeD
     delete[] saltBytes;
     
     // Return null if not success:
-    if (status)
+    if (status) {
+        delete[] output;
         return NULL;
+    }
     
     // Result:
     jbyteArray result = env->NewByteArray(outputSize);
@@ -53,14 +55,14 @@ JNIEXPORT jbyteArray JNICALL Java_com_couchbase_lite_store_ForestDBStore_nativeD
     return result;
 }
 
-#elif defined (CBL_KEY_CRYPTO_OPENSSL)
+#elif defined (_CRYPTO_OPENSSL)
 
 #include "openssl/evp.h"
 #include "openssl/sha.h"
 
 JNIEXPORT jbyteArray JNICALL Java_com_couchbase_lite_store_ForestDBStore_nativeDerivePBKDF2SHA256Key
 (JNIEnv* env, jclass clazz, jstring password, jbyteArray salt, jint rounds)  {
-    if (password == NULL || salt == NULL)
+    if (password == NULL || salt == NULL || rounds < 1)
         return NULL;
     
     // Password:
@@ -74,7 +76,7 @@ JNIEXPORT jbyteArray JNICALL Java_com_couchbase_lite_store_ForestDBStore_nativeD
     
     // PBKDF2-SHA256
     int outputSize = 32; //256 bit
-    unsigned char* output = new unsigned char[outputSize * 2];
+    unsigned char* output = new unsigned char[outputSize];
     int status = PKCS5_PBKDF2_HMAC(passwordCStr, passwordSize, saltBytes, saltSize,
                                    (int)rounds, EVP_sha256(), outputSize, output);
     // Release memory:
@@ -82,8 +84,10 @@ JNIEXPORT jbyteArray JNICALL Java_com_couchbase_lite_store_ForestDBStore_nativeD
     delete[] saltBytes;
     
     // Return null if not success:
-    if (status == 0)
+    if (status == 0) {
+        delete[] output;
         return NULL;
+    }
     
     // Result:
     jbyteArray result = env->NewByteArray(outputSize);

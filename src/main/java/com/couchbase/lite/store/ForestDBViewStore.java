@@ -36,6 +36,7 @@ import com.couchbase.lite.support.FileDirUtils;
 import com.couchbase.lite.support.action.Action;
 import com.couchbase.lite.support.action.ActionBlock;
 import com.couchbase.lite.support.action.ActionException;
+import com.couchbase.lite.support.security.SymmetricKey;
 import com.couchbase.lite.util.Log;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
@@ -521,8 +522,20 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
     private View openIndex(int flags, boolean dryRun) throws ForestException {
         if (_index == null) {
             //Log.e(TAG, "[openIndex()] name => `%s`, delegate.getMapVersion() => `%s`", name, delegate!=null?delegate.getMapVersion():null);
-            _index = new View(_dbStore.forest, _path, flags, 0, null, name, dryRun ? "0" : delegate.getMapVersion());
-            if(dryRun){
+
+            // Encryption:
+            SymmetricKey encryptionKey = _dbStore.getEncryptionKey();
+            int enAlgorithm = Database.NoEncryption;
+            byte[] enKey = null;
+            if (encryptionKey != null) {
+                enAlgorithm = Database.AES256Encryption;
+                enKey = encryptionKey.getKey();
+            }
+
+            _index = new View(_dbStore.forest, _path, flags, enAlgorithm, enKey, name,
+                    dryRun ? "0" : delegate.getMapVersion());
+            
+            if(dryRun) {
                 closeIndex();
             }
         }
