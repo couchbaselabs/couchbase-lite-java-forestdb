@@ -394,16 +394,19 @@ model {
                         "-D__unused="
                 }
 
-                // Link to crypto library:
-                // Using commoncrypto for OSX is pending 
-                // (https://github.com/couchbaselabs/couchbase-lite-java-forestdb/issues/22).
-                cppCompiler.args '-D_CRYPTO_OPENSSL'
-                sources { 
-                    cpp {
-                        lib library: 'libcrypto', linkage: 'static'
+                // Link with commonCrypto for OSX or libcrypto for the others:
+                if (targetPlatform.operatingSystem.macOsX) {
+                    cppCompiler.args '-D_CRYPTO_CC'
+                    linker.args '-framework', 'Security'
+                } else {
+                    cppCompiler.args '-D_CRYPTO_OPENSSL'
+                    sources { 
+                        cpp {
+                            lib library: 'libcrypto', linkage: 'static'
+                        }
                     }
                 }
-
+                
                 // JNI Compiler and linker options:
                 if (targetPlatform.operatingSystem.macOsX) {
                     cppCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
