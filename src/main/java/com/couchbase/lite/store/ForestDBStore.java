@@ -126,7 +126,10 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
 
     @Override
     public boolean databaseExists(String directory) {
-        return new File(directory, kDBFilename).exists();
+        if (new File(directory, kDBFilename).exists())
+            return true;
+        // If "db.forest" doesn't exist (auto-compaction will add numeric suffixes), check for meta:
+        return new File(directory, kDBFilename + ".meta").exists();
     }
 
     @Override
