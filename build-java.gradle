@@ -394,16 +394,13 @@ model {
                         "-D__unused="
                 }
 
-                // For osx, link with commoncrypto, otherwise with libcrypto:
-                if (targetPlatform.operatingSystem.macOsX) {
-                    cppCompiler.args '-D_CRYPTO_CC'
-                    linker.args '-L/usr/lib/system', '-lcommonCrypto'
-                } else {
-                    cppCompiler.args '-D_CRYPTO_OPENSSL'
-                    sources { 
-                        cpp {
-                            lib library: 'libcrypto', linkage: 'static'
-                        }
+                // Link to crypto library:
+                // Using commoncrypto for OSX is pending 
+                // (https://github.com/couchbaselabs/couchbase-lite-java-forestdb/issues/22).
+                cppCompiler.args '-D_CRYPTO_OPENSSL'
+                sources { 
+                    cpp {
+                        lib library: 'libcrypto', linkage: 'static'
                     }
                 }
 
