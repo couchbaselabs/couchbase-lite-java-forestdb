@@ -75,12 +75,15 @@ public class ForestBridge {
     /**
      * in CBLForestBridge.m
      * + (NSArray*) getCurrentRevisionIDs: (VersionedDocument&)doc
+     *                     includeDeleted: (BOOL)includeDeleted
      */
-    public static List<String> getCurrentRevisionIDs(Document doc) throws ForestException {
+    public static List<String> getCurrentRevisionIDs(Document doc, boolean includeDeleted)
+            throws ForestException {
         List<String> currentRevIDs = new ArrayList<String>();
         do {
-            currentRevIDs.add(doc.getSelectedRevID());
-        } while (doc.selectNextLeaf(false, false));
+            if(includeDeleted || !doc.selectedRevDeleted())
+                currentRevIDs.add(doc.getSelectedRevID());
+        } while (doc.selectNextLeaf(includeDeleted, false));
         return currentRevIDs;
     }
 

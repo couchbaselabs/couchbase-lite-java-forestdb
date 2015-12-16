@@ -670,7 +670,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                     if ((options.getAllDocsMode() == Query.AllDocsMode.SHOW_CONFLICTS
                             || options.getAllDocsMode() == Query.AllDocsMode.ONLY_CONFLICTS)
                             && doc.conflicted()) {
-                        conflicts = ForestBridge.getCurrentRevisionIDs(doc);
+                        conflicts = ForestBridge.getCurrentRevisionIDs(doc, false);
                         if (conflicts != null && conflicts.size() == 1)
                             conflicts = null;
                     }
@@ -721,12 +721,11 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                                      Map<String, Object> filterParams) {
         // http://wiki.apache.org/couchdb/HTTP_database_API#Changes
         if (options == null) options = new ChangesOptions();
-        boolean withBody = (options.isIncludeDocs() || filter != null);
+        boolean withBody = (options.isIncludeDocs() || options.isIncludeConflicts() || filter != null);
         RevisionList changes = new RevisionList();
         try {
             int iteratorFlags = IteratorFlags.kDefault;
             iteratorFlags |= IteratorFlags.kIncludeDeleted;
-            iteratorFlags |= IteratorFlags.kIncludeBodies;
             DocumentIterator itr = forest.iterateChanges(lastSequence, iteratorFlags);
             try {
                 Document doc;
@@ -734,8 +733,8 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                 while ((doc = itr.nextDocument()) != null) {
                     Log.e(TAG, "[changesSince()] docID=%s seq=%d conflicted=%s", doc.getDocID(), doc.getSelectedSequence(), doc.conflicted());
                     List<String> revIDs;
-                    if (options.isIncludeConflicts() && doc.conflicted()) {
-                        revIDs = ForestBridge.getCurrentRevisionIDs(doc);
+                    if (options.isIncludeConflicts()) {
+                        revIDs = ForestBridge.getCurrentRevisionIDs(doc, true);
                     } else {
                         revIDs = new ArrayList<String>();
                         revIDs.add(doc.getRevID());
