@@ -91,7 +91,9 @@ android {
 
     buildNative.dependsOn 'generateCBForestJniHeaders'
     buildNative.doLast {
-        cleanJniHeaders.execute()
+        // Commented out JNI header clean method.
+        // Instead, added these generated headers in cbforest/.gitignore
+        // cleanJniHeaders.execute()
     }
 
     task cleanNative(type: Exec, description: 'Clean JNI object files') {
