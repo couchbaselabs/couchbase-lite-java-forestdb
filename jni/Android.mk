@@ -175,6 +175,7 @@ LOCAL_SRC_FILES :=	$(SQLITE3_PATH)/fts3_unicode2.c \
 					$(CBFOREST_PATH)/Tokenizer.cc \
 					$(CBFOREST_C_PATH)/c4.c \
 					$(CBFOREST_C_PATH)/c4Database.cc \
+					$(CBFOREST_C_PATH)/c4DocEnumerator.cc \
 					$(CBFOREST_C_PATH)/c4Document.cc \
 					$(CBFOREST_C_PATH)/c4Key.cc \
 					$(CBFOREST_C_PATH)/c4View.cc \
