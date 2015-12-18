@@ -25,6 +25,7 @@ public class C4ViewTest extends C4TestCase {
 
     protected View view = null;
     protected File indexFile = null;
+    protected Indexer indexer = null;
 
     @Override
     protected void setUp() throws Exception {
@@ -38,6 +39,8 @@ public class C4ViewTest extends C4TestCase {
 
         view = new View(db, indexFile.getPath(), Database.Create, 0, null,"myview", "1");
         assertNotNull(view);
+
+
     }
 
     @Override
@@ -63,9 +66,10 @@ public class C4ViewTest extends C4TestCase {
         }
 
         boolean commit = false;
-        view.beginIndex();
+        View[] views = {view};
+        indexer = new Indexer(views);
         try {
-            DocumentIterator itr = view.enumerator();
+            DocumentIterator itr = indexer.iterateDocuments();
             try {
                 Document doc;
                 while ((doc = itr.nextDocument()) != null) {
@@ -75,14 +79,14 @@ public class C4ViewTest extends C4TestCase {
                     keys[1] = doc.getSelectedSequence();
                     values[0] = "1234".getBytes();
                     values[1] = "1234".getBytes();
-                    view.emit(doc, keys, values);
+                    indexer.emit(doc, 0, keys, values);
                 }
             }finally {
                 itr.free();
             }
             commit = true;
         }finally {
-            view.endIndex(commit);
+            indexer.endIndex(commit);
         }
     }
 
@@ -154,9 +158,10 @@ public class C4ViewTest extends C4TestCase {
         }
 
         boolean commit = false;
-        view.beginIndex();
+        View[] views = {view};
+        indexer = new Indexer(views);
         try {
-            DocumentIterator itr = view.enumerator();
+            DocumentIterator itr = indexer.iterateDocuments();
             try {
                 int i = 1;
                 Document doc;
@@ -168,9 +173,9 @@ public class C4ViewTest extends C4TestCase {
                         keys[1] = doc.getSelectedSequence();
                         values[0] = "1234".getBytes();
                         values[1] = "1234".getBytes();
-                        view.emit(doc, keys, values);
+                        indexer.emit(doc, 0, keys, values);
                     }else{
-                        view.emit(doc, new Object[0], null);
+                        indexer.emit(doc, 0, new Object[0], null);
                     }
                     i++;
                 }
@@ -179,7 +184,7 @@ public class C4ViewTest extends C4TestCase {
             }
             commit = true;
         }finally {
-            view.endIndex(commit);
+            indexer.endIndex(commit);
         }
     }
 

@@ -183,6 +183,7 @@ LOCAL_SRC_FILES :=	$(SQLITE3_PATH)/fts3_unicode2.c \
 					$(CBFOREST_JNI_PATH)/native_document.cc \
 					$(CBFOREST_JNI_PATH)/native_documentiterator.cc \
 					$(CBFOREST_JNI_PATH)/native_glue.cc \
+					$(CBFOREST_JNI_PATH)/native_indexer.cc \
 					$(CBFOREST_JNI_PATH)/native_queryIterator.cc \
 					$(CBFOREST_JNI_PATH)/native_view.cc \
 					$(FORESTDB_STORE_PATH)/native_forestdbstore.cc
