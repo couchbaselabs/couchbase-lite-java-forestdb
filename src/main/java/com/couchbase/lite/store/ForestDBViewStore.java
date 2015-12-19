@@ -19,6 +19,7 @@ import com.couchbase.cbforest.Database;
 import com.couchbase.cbforest.Document;
 import com.couchbase.cbforest.DocumentIterator;
 import com.couchbase.cbforest.ForestException;
+import com.couchbase.cbforest.Indexer;
 import com.couchbase.cbforest.QueryIterator;
 import com.couchbase.cbforest.View;
 import com.couchbase.lite.CouchbaseLiteException;
@@ -222,11 +223,12 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
 
             try {
                 boolean commit = false;
-                viewStorage._index.beginIndex();
+                View cbforestViews[] = {viewStorage._index};
+                Indexer indexer = new Indexer(cbforestViews);
                 try {
                     DocumentIterator itr = null;
                     try {
-                        itr = viewStorage._index.enumerator();
+                        itr = indexer.iterateDocuments();
                     } catch (ForestException e) {
                         if (e.code == FDBErrors.FDB_RESULT_SUCCESS)
                             return Status.NOT_MODIFIED;
@@ -265,7 +267,7 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
                                 for (int i = 0; i < values.size(); i++) {
                                     jsons[i] = values.get(i);
                                 }
-                                viewStorage._index.emit(doc, keys.toArray(), jsons);
+                                indexer.emit(doc, 0, keys.toArray(), jsons);
                                 doc.free();
                             }
                             commit = true;
@@ -274,7 +276,7 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
                         }
                     }
                 } finally {
-                    viewStorage._index.endIndex(commit);
+                    indexer.endIndex(commit);
                 }
             } catch (ForestException e) {
                 Log.e(TAG, "Error in updateIndex()", e);
