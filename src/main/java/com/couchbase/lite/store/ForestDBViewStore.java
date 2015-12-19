@@ -204,12 +204,9 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
     }
 
     @Override
-    public void updateIndex() throws CouchbaseLiteException {
-        updateIndex(Arrays.asList(this));
-    }
-
-    private int updateIndex(List<ForestDBViewStore> views) throws CouchbaseLiteException {
-        for(ForestDBViewStore viewStorage : views) {
+    public Status updateIndexes(List<ViewStore> views) throws CouchbaseLiteException {
+        for(ViewStore v : views) {
+            ForestDBViewStore viewStorage = (ForestDBViewStore)v;
             try {
                 viewStorage.openIndex();
             } catch (ForestException e) {
@@ -218,7 +215,7 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
 
             if (viewStorage.delegate.getMap() == null) {
                 Log.v(TAG, "    %s has no map block; skipping it", viewStorage.getName());
-                return Status.OK;
+                return new Status(Status.OK);
             }
 
             try {
@@ -231,7 +228,7 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
                         itr = indexer.iterateDocuments();
                     } catch (ForestException e) {
                         if (e.code == FDBErrors.FDB_RESULT_SUCCESS)
-                            return Status.NOT_MODIFIED;
+                            return new Status(Status.NOT_MODIFIED);
                         else
                             throw e;
                     }
@@ -284,7 +281,7 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
             }
         }
         Log.v(TAG, "... Finished re-indexing (%s)", viewNames(views));
-        return Status.OK;
+        return new Status(Status.OK);
     }
 
     @Override
@@ -563,11 +560,15 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
         return FileDirUtils.deleteRecursive(new File(_path));
     }
 
-    private static String viewNames(List<ForestDBViewStore> views) {
-        StringBuffer sb = new StringBuffer();
-        for (ForestDBViewStore view : views) {
+    private static String viewNames(List<ViewStore> views) {
+        StringBuilder sb = new StringBuilder();
+        boolean first = true;
+        for (ViewStore view : views) {
+            if (first)
+                first = false;
+            else
+                sb.append(", ");
             sb.append(view.getName());
-            sb.append(", ");
         }
         return sb.toString();
     }
