@@ -299,6 +299,7 @@ model {
                                 "vendor/cbforest/CBForest/Tokenizer.cc",
                                 "vendor/cbforest/C/c4.c",
                                 "vendor/cbforest/C/c4Database.cc",
+                                "vendor/cbforest/C/c4DocEnumerator.cc",
                                 "vendor/cbforest/C/c4Document.cc",
                                 "vendor/cbforest/C/c4Key.cc",
                                 "vendor/cbforest/C/c4View.cc",
@@ -306,6 +307,7 @@ model {
                                 "vendor/cbforest/Java/jni/native_document.cc",
                                 "vendor/cbforest/Java/jni/native_documentiterator.cc",
                                 "vendor/cbforest/Java/jni/native_glue.cc",
+                                "vendor/cbforest/Java/jni/native_indexer.cc",
                                 "vendor/cbforest/Java/jni/native_queryIterator.cc",
                                 "vendor/cbforest/Java/jni/native_view.cc",
                                 "jni/source/native_forestdbstore.cc"
