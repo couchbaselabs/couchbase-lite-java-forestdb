@@ -203,84 +203,136 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
     }
 
     @Override
-    public Status updateIndexes(List<ViewStore> views) throws CouchbaseLiteException {
-        for(ViewStore v : views) {
-            ForestDBViewStore viewStorage = (ForestDBViewStore)v;
+    public Status updateIndexes(List<ViewStore> inputViews) throws CouchbaseLiteException {
+        assert (inputViews != null);
+
+        final ArrayList<View> views = new ArrayList<View>();
+        final ArrayList<Mapper> mapBlocks = new ArrayList<Mapper>();
+        ArrayList<String> docTypes = null;
+        for(ViewStore v : inputViews) {
+            ForestDBViewStore view = (ForestDBViewStore)v;
+            ViewStoreDelegate delegate = view.getDelegate();
+            Mapper map = delegate != null ? delegate.getMap() : null;
+            if (map == null) {
+                Log.v(Log.TAG_VIEW, "    %s has no map block; skipping it", view.getName());
+                continue;
+            }
+
             try {
-                viewStorage.openIndex();
+                view.openIndex();
             } catch (ForestException e) {
                 throw new CouchbaseLiteException(e.code);
             }
+            views.add(view._index);
+            mapBlocks.add(map);
 
-            if (viewStorage.delegate.getMap() == null) {
-                Log.v(TAG, "    %s has no map block; skipping it", viewStorage.getName());
-                return new Status(Status.OK);
-            }
-
-            try {
-                boolean commit = false;
-                View cbforestViews[] = {viewStorage._index};
-                Indexer indexer = new Indexer(cbforestViews);
-                try {
-                    DocumentIterator itr = null;
-                    try {
-                        itr = indexer.iterateDocuments();
-                    } catch (ForestException e) {
-                        if (e.code == FDBErrors.FDB_RESULT_SUCCESS)
-                            return new Status(Status.NOT_MODIFIED);
-                        else
-                            throw e;
-                    }
-                    if (itr != null) {
-                        try {
-                            Document doc;
-                            while ((doc = itr.nextDocument()) != null) {
-                                boolean indexIt = true;
-                                if (doc.deleted())
-                                    indexIt = false;
-                                if (doc.getDocID().startsWith("_design/"))
-                                    indexIt = false;
-                                final List<Object> keys = new ArrayList<Object>();
-                                final List<byte[]> values = new ArrayList<byte[]>();
-                                if (indexIt) {
-                                    RevisionInternal rev = ForestBridge.revisionObjectFromForestDoc(doc, null, true);
-                                    Mapper map = viewStorage.delegate.getMap();
-                                    map.map(rev.getProperties(), new Emitter() {
-                                        @Override
-                                        public void emit(Object key, Object value) {
-                                            try {
-                                                byte[] json = Manager.getObjectMapper().writeValueAsBytes(value);
-                                                keys.add(key);
-                                                values.add(json);
-                                            } catch (JsonProcessingException e) {
-                                                Log.e(TAG, "Error in obj -> json", e);
-                                            }
-
-                                        }
-                                    });
-                                }
-                                byte[][] jsons = new byte[values.size()][];
-                                for (int i = 0; i < values.size(); i++) {
-                                    jsons[i] = values.get(i);
-                                }
-                                indexer.emit(doc, 0, keys.toArray(), jsons);
-                                doc.free();
-                            }
-                            commit = true;
-                        } finally {
-                            if (itr != null) itr.free();
-                        }
-                    }
-                } finally {
-                    indexer.endIndex(commit);
-                }
-            } catch (ForestException e) {
-                Log.e(TAG, "Error in updateIndex()", e);
-                throw new CouchbaseLiteException(e.code);
+            String docType = delegate.getDocumentType();
+            if (docType != null) {
+                if (docTypes == null)
+                    docTypes = new ArrayList<String>();
+                docTypes.add(docType);
             }
         }
-        Log.v(TAG, "... Finished re-indexing (%s)", viewNames(views));
+
+        if (views.size() == 0) {
+            Log.v(TAG, "    No input views to update the index");
+            return new Status(Status.NOT_MODIFIED);
+        }
+
+        boolean success = false;
+        Indexer indexer = null;
+        try {
+            indexer = new Indexer(views.toArray(new View[views.size()]));
+            indexer.triggerOnView(this._index);
+            DocumentIterator it = null;
+            try {
+                it = indexer.iterateDocuments();
+                if (it == null)
+                    return new Status(Status.NOT_MODIFIED);
+            } catch (ForestException e) {
+                if (e.code == FDBErrors.FDB_RESULT_SUCCESS)
+                    return new Status(Status.NOT_MODIFIED);
+                else
+                    throw e;
+            }
+
+            Document doc;
+            while ((doc = it.nextDocument()) != null) {
+                for (int viewNumber = 0; viewNumber < views.size(); viewNumber++) {
+                    if (!indexer.shouldIndex(doc, viewNumber))
+                        continue;
+
+                    boolean indexIt = true;
+                    if (doc.deleted() || doc.getDocID().startsWith("_design/")) {
+                        indexIt = false;
+                    } else if (docTypes != null && docTypes.size() > 0) {
+                        String docType = doc.getType();
+                        if (docType == null || !docTypes.contains(docType))
+                            indexIt = false;
+                    }
+
+                    if (indexIt)
+                        emit(indexer, viewNumber, doc, mapBlocks.get(viewNumber));
+                    else
+                        emit(indexer, viewNumber, doc, null);
+                }
+            }
+            success = true;
+        } catch (ForestException e) {
+            throw new CouchbaseLiteException(e, e.code);
+        } finally {
+            if (indexer != null) {
+                try {
+                    indexer.endIndex(success);
+                } catch (ForestException ex) {
+                    Log.e(TAG, "Cannot end index", ex);
+                    if (success)
+                        throw new CouchbaseLiteException(ex, ex.code);
+                }
+            }
+        }
+        Log.v(TAG, "... Finished re-indexing (%s)", viewNames(inputViews));
         return new Status(Status.OK);
+    }
+
+    private void emit(Indexer indexer, int viewNumber, Document doc, Mapper mapper)
+            throws ForestException, CouchbaseLiteException {
+        final List<Object> keys = new ArrayList<Object>();
+        final List<byte[]> values = new ArrayList<byte[]>();
+        if (mapper != null) {
+            RevisionInternal rev = ForestBridge.revisionObjectFromForestDoc(doc, null, true);
+            Map<String, Object> properties = rev.getProperties();
+            properties.put("_local_seq", rev.getSequence());
+
+            if (doc.conflicted()) {
+                List<String> currentRevIDs = ForestBridge.getCurrentRevisionIDs(doc, false);
+                if (currentRevIDs != null && currentRevIDs.size() > 1)
+                    properties.put("_conflicts", currentRevIDs.subList(1, currentRevIDs.size()));
+            }
+
+            try {
+                mapper.map(properties, new Emitter() {
+                    @Override
+                    public void emit(Object key, Object value) {
+                        try {
+                            byte[] json = Manager.getObjectMapper().writeValueAsBytes(value);
+                            keys.add(key);
+                            values.add(json);
+                        } catch (Exception e) {
+                            Log.e(TAG, "Error in obj -> json", e);
+                            throw new RuntimeException(e);
+                        }
+                    }
+                });
+            } catch (Throwable e) {
+                throw new CouchbaseLiteException(e, Status.CALLBACK_ERROR);
+            }
+        }
+        final byte[][] jsons = new byte[values.size()][];
+        for (int i = 0; i < values.size(); i++) {
+            jsons[i] = values.get(i);
+        }
+        indexer.emit(doc, viewNumber, keys.toArray(), jsons);
     }
 
     @Override
