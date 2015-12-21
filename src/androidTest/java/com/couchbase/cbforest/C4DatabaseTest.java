@@ -297,6 +297,7 @@ public class C4DatabaseTest extends C4TestCase {
             i++;
         }
         itr.free();
+        assertEquals(100, i);
 
         // Start and end ID:
         itr = db.iterator("doc-007", "doc-090", 0, IteratorFlags.kDefault);
@@ -348,6 +349,32 @@ public class C4DatabaseTest extends C4TestCase {
         }
         assertEquals(9, i);
         itr.free();
+    }
+
+    public void testAllDocsInfo() throws ForestException {
+        setupAllDocs();
+
+        DocumentIterator itr = null;
+
+        // No start or end ID:
+        int iteratorFlags = IteratorFlags.kDefault;
+        itr = db.iterator(null, null, 0, iteratorFlags);
+        assertNotNull(itr);
+        Document doc = null;
+        int i = 1;
+        while ((doc = itr.nextDocument()) != null) {
+            String docID = String.format("doc-%03d", i);
+            assertEquals(docID, doc.getDocID());
+            assertEquals(kRevID, doc.getRevID());
+            assertEquals(kRevID, doc.getSelectedRevID());
+            assertEquals(i, doc.getSequence());
+            assertEquals(i, doc.getSelectedSequence());
+            assertEquals(C4DocumentFlags.kExists, doc.getFlags());
+            doc.free();
+            i++;
+        }
+        itr.free();
+        assertEquals(100, i);
     }
 
     public void testChanges() throws ForestException {
