@@ -208,7 +208,8 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
 
         final ArrayList<View> views = new ArrayList<View>();
         final ArrayList<Mapper> mapBlocks = new ArrayList<Mapper>();
-        ArrayList<String> docTypes = null;
+        final ArrayList<String> docTypes = new ArrayList<String>();
+        boolean useDocType = false;
         for(ViewStore v : inputViews) {
             ForestDBViewStore view = (ForestDBViewStore)v;
             ViewStoreDelegate delegate = view.getDelegate();
@@ -227,11 +228,9 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
             mapBlocks.add(map);
 
             String docType = delegate.getDocumentType();
-            if (docType != null) {
-                if (docTypes == null)
-                    docTypes = new ArrayList<String>();
-                docTypes.add(docType);
-            }
+            docTypes.add(docType);
+            if (docType != null && !useDocType)
+                useDocType = true;
         }
 
         if (views.size() == 0) {
@@ -258,17 +257,17 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
 
             Document doc;
             while ((doc = it.nextDocument()) != null) {
+                String docType = useDocType ? doc.getType() : null;
+                boolean validDocToIndex = !doc.deleted() && !doc.getDocID().startsWith("_design/");
                 for (int viewNumber = 0; viewNumber < views.size(); viewNumber++) {
                     if (!indexer.shouldIndex(doc, viewNumber))
                         continue;
 
-                    boolean indexIt = true;
-                    if (doc.deleted() || doc.getDocID().startsWith("_design/")) {
-                        indexIt = false;
-                    } else if (docTypes != null && docTypes.size() > 0) {
-                        String docType = doc.getType();
-                        if (docType == null || !docTypes.contains(docType))
-                            indexIt = false;
+                    boolean indexIt = validDocToIndex;
+                    if (indexIt && useDocType) {
+                        String viewDocType = docTypes.get(viewNumber);
+                        if (viewDocType != null)
+                            indexIt = viewDocType.equals(docType);
                     }
 
                     if (indexIt)
