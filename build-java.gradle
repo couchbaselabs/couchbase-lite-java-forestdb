@@ -422,7 +422,7 @@ model {
                 } else if (targetPlatform.operatingSystem.windows) {
                     cppCompiler.args "-I${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
                     cppCompiler.args "-I${org.gradle.internal.jvm.Jvm.current().javaHome}/include/win32"
-                    linker.args 'Ws2_32.lib'
+                    linker.args 'Ws2_32.lib', 'Advapi32.lib', 'Gdi32.lib', 'User32.lib'
                 }
             }
         }
