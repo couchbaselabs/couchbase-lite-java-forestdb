@@ -5,6 +5,11 @@ apply plugin: "maven"
 
 version = System.getenv("MAVEN_UPLOAD_VERSION")
 
+repositories {
+    maven { url 'http://files.couchbase.com/maven2/' }
+    jcenter()
+}
+
 ////////////////////////////////////////////
 // For Java
 ////////////////////////////////////////////
