@@ -386,7 +386,8 @@ model {
                         "-D_FDB_TOOLS",
                         "-D_USRDLL",
                         "-D_ALLOW_KEYWORD_MACROS",
-                            "-DCBFOREST_EXPORTS"
+                        "-DCBFOREST_EXPORTS",
+                        "-DC4DB_THREADSAFE"
                 } else {
                     cppCompiler.args "-Wformat-security",
                         "-Wmissing-declarations",
@@ -400,7 +401,8 @@ model {
                         "-DWITH_STEMMER_english",
                         "-D_DOC_COMP",
                         "-DHAVE_GCC_ATOMICS=1",
-                        "-D__unused="
+                        "-D__unused=",
+                        "-DC4DB_THREADSAFE"
                 }
 
                 // Link with commonCrypto for OSX or libcrypto for the others:

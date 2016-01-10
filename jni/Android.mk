@@ -56,6 +56,7 @@ LOCAL_CPPFLAGS	+=	-fexceptions
 LOCAL_CPPFLAGS	+=	-fpermissive
 LOCAL_CPPFLAGS	+=	-frtti
 LOCAL_CPPFLAGS	+=	-D__ANDROID__
+LOCAL_CPPFLAGS	+=	-DC4DB_THREADSAFE
 #LOCAL_CPPFLAGS	+=	-DNO_CBFOREST_ENCRYPTION
 
 # this requires for stdint.h active if android sdk is lower than or equal to android-19
@@ -65,7 +66,7 @@ LOCAL_CPPFLAGS	+=	-D__STDC_LIMIT_MACROS
 LOCAL_CPPFLAGS  +=  -g -O0
 LOCAL_CPPFLAGS	+=	-Wno-unused-value
 LOCAL_CPPFLAGS	+=	-Wno-deprecated-register
-LOCAL_CPPFLAGS  += -fexceptions
+LOCAL_CPPFLAGS  +=  -fexceptions
 
 LOCAL_CPP_FEATURES += rtti
 LOCAL_CPP_FEATURES += exceptions
