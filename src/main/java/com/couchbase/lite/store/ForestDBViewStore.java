@@ -43,7 +43,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -705,15 +708,31 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
         if (fileName.startsWith("."))
             return null;
         String viewName = fileName.substring(0, fileName.indexOf("."));
-        viewName = viewName.replaceAll(":", "/");
+        try {
+            viewName = isWindows() ? URLDecoder.decode(viewName, "UTF-8") : viewName.replaceAll(":", "/");
+        }catch(UnsupportedEncodingException ex){
+            Log.w(TAG, "Error to url encode: " + viewName ,ex);
+        }
         return viewName;
     }
 
     private static String viewNameToFileName(String viewName) {
         if (viewName.startsWith(".") || viewName.indexOf(":") > 0)
             return null;
-        viewName = viewName.replaceAll("/", ":");
+        try {
+            viewName = isWindows() ? URLEncoder.encode(viewName, "UTF-8") : viewName.replaceAll("/", ":");
+        }catch(UnsupportedEncodingException ex){
+            Log.w(TAG, "Error to url decode: " + viewName, ex);
+        }
         return viewName + "." + kViewIndexPathExtension;
+    }
+
+
+
+    private static String OS = System.getProperty("os.name").toLowerCase();
+
+    private static boolean isWindows(){
+        return (OS.indexOf("win") >= 0);
     }
 
     /**
