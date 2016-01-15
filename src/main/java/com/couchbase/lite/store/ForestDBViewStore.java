@@ -39,7 +39,6 @@ import com.couchbase.lite.support.action.ActionBlock;
 import com.couchbase.lite.support.action.ActionException;
 import com.couchbase.lite.support.security.SymmetricKey;
 import com.couchbase.lite.util.Log;
-import com.fasterxml.jackson.core.JsonProcessingException;
 
 import java.io.File;
 import java.io.IOException;
@@ -702,28 +701,33 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
     // Internal (Protected/Private) Static Methods
     ///////////////////////////////////////////////////////////////////////////
 
-    protected static String fileNameToViewName(String fileName) {
+    protected static String fileNameToViewName(String fileName) throws CouchbaseLiteException {
         if (!fileName.endsWith(kViewIndexPathExtension))
-            return null;
+            throw new CouchbaseLiteException(Status.BAD_PARAM);
         if (fileName.startsWith("."))
-            return null;
+            throw new CouchbaseLiteException(Status.BAD_PARAM);
+
         String viewName = fileName.substring(0, fileName.indexOf("."));
         try {
             viewName = isWindows() ? URLDecoder.decode(viewName, "UTF-8") : viewName.replaceAll(":", "/");
-        }catch(UnsupportedEncodingException ex){
-            Log.w(TAG, "Error to url encode: " + viewName ,ex);
+        } catch (UnsupportedEncodingException ex) {
+            Log.w(TAG, "Error to url encode: " + viewName, ex);
+            throw new CouchbaseLiteException(ex, Status.BAD_ENCODING);
         }
         return viewName;
     }
 
-    private static String viewNameToFileName(String viewName) {
+    private static String viewNameToFileName(String viewName) throws CouchbaseLiteException {
         if (viewName.startsWith(".") || viewName.indexOf(":") > 0)
-            return null;
+            throw new CouchbaseLiteException(Status.BAD_PARAM);
+
         try {
             viewName = isWindows() ? URLEncoder.encode(viewName, "UTF-8") : viewName.replaceAll("/", ":");
-        }catch(UnsupportedEncodingException ex){
+        } catch (UnsupportedEncodingException ex) {
             Log.w(TAG, "Error to url decode: " + viewName, ex);
+            throw new CouchbaseLiteException(ex, Status.BAD_ENCODING);
         }
+
         return viewName + "." + kViewIndexPathExtension;
     }
 
