@@ -1047,24 +1047,20 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
     }
 
     @Override
-    public ViewStore getViewStorage(String name, boolean create) {
-        try {
-            return new ForestDBViewStore(this, name, create);
-        } catch (CouchbaseLiteException e) {
-            if(e.getCBLStatus().getCode() != Status.NOT_FOUND)
-                Log.e(TAG, "Error in getViewStorage()", e);
-            return null;
-        }
+    public ViewStore getViewStorage(String name, boolean create) throws CouchbaseLiteException {
+        return new ForestDBViewStore(this, name, create);
     }
 
     @Override
     public List<String> getAllViewNames() {
         List<String> result = new ArrayList<String>();
         String[] fileNames = new File(directory).list();
-        for(String filename : fileNames){
-            String viewName = ForestDBViewStore.fileNameToViewName(filename);
-            if(viewName != null)
-                result.add(viewName);
+        for (String filename : fileNames) {
+            try {
+                result.add(ForestDBViewStore.fileNameToViewName(filename));
+            } catch (CouchbaseLiteException e) {
+                Log.w(TAG, "Error in fileNameToViewName(): filename=" + filename, e);
+            }
         }
         return result;
     }
@@ -1311,8 +1307,12 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
         // Re-key the views!
         List<String> viewNames = getAllViewNames();
         for (String viewName : viewNames) {
-            ForestDBViewStore viewStorage = (ForestDBViewStore) getViewStorage(viewName, true);
-            action.add(viewStorage.getActionToChangeEncryptionKey());
+            try {
+                ForestDBViewStore viewStorage = (ForestDBViewStore) getViewStorage(viewName, true);
+                action.add(viewStorage.getActionToChangeEncryptionKey());
+            } catch (CouchbaseLiteException ex) {
+                Log.w(TAG, "Error in getViewStorage() viewName=" + viewName, ex);
+            }
         }
 
         // Re-key the database:
