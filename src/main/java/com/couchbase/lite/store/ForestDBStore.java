@@ -731,7 +731,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                 Document doc;
 
                 while ((doc = itr.nextDocument()) != null) {
-                    Log.e(TAG, "[changesSince()] docID=%s seq=%d conflicted=%s", doc.getDocID(), doc.getSelectedSequence(), doc.conflicted());
+                    Log.d(TAG, "[changesSince()] docID=%s seq=%d conflicted=%s", doc.getDocID(), doc.getSelectedSequence(), doc.conflicted());
                     List<String> revIDs;
                     if (options.isIncludeConflicts()) {
                         revIDs = ForestBridge.getCurrentRevisionIDs(doc, true);
