@@ -741,7 +741,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                     }
 
                     for (String revID : revIDs) {
-                        Log.w(TAG, "[changesSince()] revID => " + revID);
+                        Log.d(TAG, "[changesSince()] revID => " + revID);
                         RevisionInternal rev = ForestBridge.revisionObjectFromForestDoc(doc, revID, withBody);
                         if (filter == null || delegate.runFilter(filter, filterParams, rev)) {
                             if (!options.isIncludeDocs())
@@ -1059,7 +1059,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
             try {
                 result.add(ForestDBViewStore.fileNameToViewName(filename));
             } catch (CouchbaseLiteException e) {
-                Log.w(TAG, "Error in fileNameToViewName(): filename=" + filename, e);
+                Log.i(TAG, "Invalid filename as a view store: filename=" + filename);
             }
         }
         return result;
