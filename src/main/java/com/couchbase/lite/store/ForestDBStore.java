@@ -256,7 +256,6 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
 
     @Override
     public boolean inTransaction() {
-        //return forest.isInTransaction();
         return transactionLevel4Thread.get() > 0;
     }
 
