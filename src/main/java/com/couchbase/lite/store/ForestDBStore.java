@@ -94,6 +94,13 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
     private boolean readOnly = false;
     private SymmetricKey encryptionKey;
 
+    private ThreadLocal<Integer> transactionLevel4Thread = new ThreadLocal<Integer>() {
+        @Override
+        protected Integer initialValue() {
+            return 0;
+        }
+    };
+
     // Native method for deriving PBDDF2-SHA256 key:
     private static native byte[] nativeDerivePBKDF2SHA256Key(String password, byte[] salt, int rounds);
 
@@ -249,7 +256,8 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
 
     @Override
     public boolean inTransaction() {
-        return forest.isInTransaction();
+        //return forest.isInTransaction();
+        return transactionLevel4Thread.get() > 0;
     }
 
     @Override
@@ -1226,6 +1234,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
     private boolean beginTransaction() {
         try {
             forest.beginTransaction();
+            transactionLevel4Thread.set(transactionLevel4Thread.get() + 1);
         } catch (ForestException e) {
             Log.e(TAG, "Failed to begin transaction", e);
             return false;
@@ -1235,6 +1244,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
 
     private boolean endTransaction(boolean commit) {
         try {
+            transactionLevel4Thread.set(transactionLevel4Thread.get() - 1);
             forest.endTransaction(commit);
         } catch (ForestException e) {
             Log.e(TAG, "Failed to end transaction", e);
