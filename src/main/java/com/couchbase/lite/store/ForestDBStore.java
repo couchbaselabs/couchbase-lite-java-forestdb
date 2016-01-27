@@ -1266,7 +1266,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
      *                              revisionID: (NSString*)revID
      *                                obeyMVCC: (BOOL)obeyMVCC;
      */
-    private Status deleteLocalDocument(final String inDocID, String inRevID, boolean obeyMVCC) {
+    private Status deleteLocalDocument(final String inDocID, String inRevID, final boolean obeyMVCC) {
         final String docID = inDocID;
         final String revID = inRevID;
 
@@ -1285,7 +1285,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                     byte[][] metaNbody = forest.rawGet("_local", docID);
                     if (metaNbody == null) {
                         return new Status(Status.NOT_FOUND);
-                    } else if (!revID.equals(new String(metaNbody[0]))) {
+                    } else if (obeyMVCC && revID != null && !revID.equals(new String(metaNbody[0]))) {
                         return new Status(Status.CONFLICT);
                     } else {
                         forest.rawPut("_local", docID, null, null);
@@ -1293,7 +1293,10 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                     }
                 } catch (ForestException e) {
                     Log.e(TAG, "Error in deleteLocalDocument()", e);
-                    return new Status(Status.UNKNOWN);
+                    if (e.domain == C4ErrorDomain.ForestDBDomain && e.code == FDBErrors.FDB_RESULT_KEY_NOT_FOUND)
+                        return new Status(Status.NOT_FOUND);
+                    else
+                        return new Status(Status.UNKNOWN);
                 }
             }
         });
