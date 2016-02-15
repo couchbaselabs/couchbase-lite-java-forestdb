@@ -506,7 +506,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                 } catch (ForestException e) {
                     if(e.domain == C4ErrorDomain.ForestDBDomain && e.code == FDBErrors.FDB_RESULT_KEY_NOT_FOUND) {
                     }else{
-                        Log.e(TAG, "Error in getDocument() docID="+rev.getRevID(), e);
+                        Log.e(TAG, "Error in getDocument() docID="+rev.getDocID(), e);
                     }
                     doc = null;
                 }
@@ -813,7 +813,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
             try {
                 doc = forest.getDocument(docID, false);
             } catch (ForestException e) {
-                Log.e(TAG, e.getMessage());
+                Log.e(TAG, "ForestDB Error: " + e.getMessage(), e);
                 throw new CouchbaseLiteException(Status.DB_ERROR);
             }
 
@@ -825,7 +825,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                     if (!allowConflict && !doc.selectedRevLeaf())
                         throw new CouchbaseLiteException(Status.CONFLICT);
                 } catch (ForestException e) {
-                    Log.e(TAG, e.getMessage());
+                    Log.e(TAG, "ForestDB Error: " + e.getMessage(), e);
                     throw new CouchbaseLiteException(Status.DB_ERROR);
                 }
 
