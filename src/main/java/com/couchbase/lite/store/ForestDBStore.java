@@ -1208,8 +1208,8 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
         if(!isWinner)
             // TODO
             ;
-        if (properties != null && properties.containsKey("type"))
-            doc.setType((String)properties.get("type"));
+        if (properties != null && properties.containsKey("type") && properties.get("type") instanceof String)
+            doc.setType((String) properties.get("type"));
 
         // save
         doc.save(maxRevTreeDepth);
