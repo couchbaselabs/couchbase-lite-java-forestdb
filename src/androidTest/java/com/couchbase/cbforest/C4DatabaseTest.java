@@ -227,6 +227,18 @@ public class C4DatabaseTest extends C4TestCase {
     }
 
     public void testInsertRevisionWithHistory() throws ForestException {
+        _testInsertRevisionWithHistory(20);
+    }
+
+    public void testInsertRevisionWith512History() throws ForestException {
+        _testInsertRevisionWithHistory(512);
+    }
+
+    public void testInsertRevisionWith1024History() throws ForestException {
+        _testInsertRevisionWithHistory(1024);
+    }
+
+    public void _testInsertRevisionWithHistory(int kHistoryCount) throws ForestException {
         String kBody2 = "{\"ok\":\"go\"}";
         createRev(kDocID, kRevID, kBody.getBytes());
         createRev(kDocID, kRev2ID, kBody2.getBytes());
@@ -236,9 +248,8 @@ public class C4DatabaseTest extends C4TestCase {
 
         // Add 18 revisions; the last two entries in the history repeat the two existing revs:
         Random r = new Random();
-        int kHistoryCount = 20;
         List<String> revIDs = new ArrayList<String>();
-        for(int i = kHistoryCount - 1; i >= 2; i--){
+        for (int i = kHistoryCount - 1; i >= 2; i--) {
             String revID = String.format("%d-%08x", i + 1, r.nextInt());
             revIDs.add(revID);
         }
