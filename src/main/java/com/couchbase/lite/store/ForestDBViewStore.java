@@ -47,7 +47,6 @@ import java.math.BigInteger;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -317,7 +316,7 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
                     @Override
                     public void emit(Object key, Object value) {
                         if (key == null) {
-                            Log.w(Log.TAG_VIEW, "Emitted key is null. Ignore this emit call.");
+                            Log.w(Log.TAG_VIEW, "emit() called with nil key; ignoring");
                             return;
                         }
                         try {
@@ -644,10 +643,7 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
         boolean inclusiveStart = options.isInclusiveStart();
         boolean inclusiveEnd = options.isInclusiveEnd();
         if (options.getKeys() != null && options.getKeys().size() > 0) {
-            // remove null value from list. null key should be ignored
-            List<Object> tmpKeys = new ArrayList<Object>(options.getKeys());
-            tmpKeys.removeAll(Collections.singletonList(null));
-            Object[] keys = tmpKeys.toArray();
+            Object[] keys = options.getKeys().toArray();
             return _index.query(
                     skip,
                     limit,
@@ -657,9 +653,7 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
                     keys);
         } else {
             Object endKey = Misc.keyForPrefixMatch(options.getEndKey(), options.getPrefixMatchLevel());
-
             Object startKey = options.getStartKey();
-            //Object endKey = options.getEndKey();
             String startKeyDocID = options.getStartKeyDocId();
             String endKeyDocID = options.getEndKeyDocId();
             return _index.query(
