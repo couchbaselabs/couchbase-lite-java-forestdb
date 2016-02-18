@@ -315,6 +315,10 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
                 mapper.map(properties, new Emitter() {
                     @Override
                     public void emit(Object key, Object value) {
+                        if (key == null) {
+                            Log.w(Log.TAG_VIEW, "emit() called with nil key; ignoring");
+                            return;
+                        }
                         try {
                             byte[] json = Manager.getObjectMapper().writeValueAsBytes(value);
                             keys.add(key);
@@ -630,7 +634,7 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
      * - (IndexEnumerator*) _runForestQueryWithOptions: (CBLQueryOptions*)options
      */
     private QueryIterator runForestQuery(QueryOptions options) throws ForestException {
-        if(options == null)
+        if (options == null)
             options = new QueryOptions();
 
         long skip = options.getSkip();
@@ -649,9 +653,7 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
                     keys);
         } else {
             Object endKey = Misc.keyForPrefixMatch(options.getEndKey(), options.getPrefixMatchLevel());
-
             Object startKey = options.getStartKey();
-            //Object endKey = options.getEndKey();
             String startKeyDocID = options.getStartKeyDocId();
             String endKeyDocID = options.getEndKeyDocId();
             return _index.query(
