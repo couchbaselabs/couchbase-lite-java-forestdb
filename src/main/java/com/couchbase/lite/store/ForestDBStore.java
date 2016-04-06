@@ -219,7 +219,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
             return Status.OK;
         }
         catch (Exception e){
-            Log.e(TAG, "Error in setInfo(): "+ e.getMessage(), e);
+            Log.e(TAG, "Exception in setInfo()", e);
             return Status.UNKNOWN;
         }
 
@@ -294,7 +294,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
         try {
             doc = forest.getDocument(docID, false);
         } catch (ForestException e) {
-            Log.e(TAG, "ForestDB Error: " + e.getMessage(), e);
+            Log.e(TAG, "ForestDB Error: getDocument(docID, false) docID=[%s]", e, docID);
             return null;
         }
         if(!doc.exists()){
@@ -313,7 +313,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
         try {
             result = ForestBridge.revisionObjectFromForestDoc(doc, revID, withBody);
         } catch (Exception e) {
-            Log.e(TAG, "Error in ForestBridge.revisionObjectFromForestDoc(): error=%s", e.getMessage());
+            Log.e(TAG, "Error in ForestBridge.revisionObjectFromForestDoc()", e);
             return null;
         }
 
@@ -341,7 +341,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
             if (!ForestBridge.loadBodyOfRevisionObject(rev, doc))
                 throw new CouchbaseLiteException(Status.NOT_FOUND);
         } catch (ForestException e) {
-            Log.e(TAG, "ForestDB Error: " + e.getMessage(), e);
+            Log.e(TAG, "ForestDB Error: loadBodyOfRevisionObject(rev, doc)", e);
             throw new CouchbaseLiteException(Status.NOT_FOUND);
         }
         return rev;
@@ -358,7 +358,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
         try {
             doc = forest.getDocument(rev.getDocID(), true);
         } catch (ForestException e) {
-            Log.w(TAG, "ForestDB Error: " + e.getMessage(), e);
+            Log.w(TAG, "ForestDB Error: getDocument(docID, true) docID=[%s]", e, rev.getDocID());
         }
         if(doc != null){
             try {
@@ -368,8 +368,8 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                     }
 
                 }
-            }catch(ForestException e){
-                Log.w(TAG, "ForestDB Error: " + e.getMessage(), e);
+            } catch (ForestException e) {
+                Log.w(TAG, "ForestDB Error: selectRevID(revID, false) revID=[%s]", e, rev.getRevID());
             }
             doc.free();
         }
@@ -406,7 +406,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
         try {
             doc = forest.getDocument(docID, false);
         } catch (ForestException e) {
-            Log.e(TAG, "ForestDB Error: " + e.getMessage(), e);
+            Log.e(TAG, "ForestDB Error: getDocument(docID, false) docID=[%s]", e, docID);
             return null;
         }
         if(!doc.exists()){
@@ -423,7 +423,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                     revs.add(new RevisionInternal(docID, doc.getSelectedRevID(), doc.selectedRevDeleted()));
                 } while (doc.selectNextLeaf(true, false));
             }catch(ForestException e){
-                Log.e(TAG, "ForestDB Error: " + e.getMessage(), e);
+                Log.e(TAG, "ForestDB Error: selectNextLeaf(true, false)", e);
                 return null;
             }
         } else {
@@ -813,7 +813,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
             try {
                 doc = forest.getDocument(docID, false);
             } catch (ForestException e) {
-                Log.e(TAG, "ForestDB Error: " + e.getMessage(), e);
+                Log.e(TAG, "ForestDB Error: getDocument(docID, false) docID=[%s]", e, docID);
                 throw new CouchbaseLiteException(Status.DB_ERROR);
             }
 
@@ -825,7 +825,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                     if (!allowConflict && !doc.selectedRevLeaf())
                         throw new CouchbaseLiteException(Status.CONFLICT);
                 } catch (ForestException e) {
-                    Log.e(TAG, "ForestDB Error: " + e.getMessage(), e);
+                    Log.e(TAG, "ForestDB Error: selectRevID(prevRevID, false) prevRevID=[%s]", e, prevRevID);
                     throw new CouchbaseLiteException(Status.DB_ERROR);
                 }
 
@@ -972,7 +972,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                     change[0] = changeWithNewRevision(rev, isWinner, doc, source);
                     return new Status(Status.CREATED);
                 } catch (ForestException e) {
-                    Log.e(TAG, "ForestDB Error: " + e.getMessage(), e);
+                    Log.e(TAG, "ForestDB Error: forceInsert()", e);
                     return new Status(Status.UNKNOWN);
                 }
             }
