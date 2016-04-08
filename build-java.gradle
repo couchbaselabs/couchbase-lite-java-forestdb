@@ -47,6 +47,7 @@ task generateCBForestJniHeaders(type: Exec, description: 'Generate CBForest JNI 
             "com.couchbase.cbforest.Document",
             "com.couchbase.cbforest.DocumentIterator",
             "com.couchbase.cbforest.ForestException",
+            "com.couchbase.cbforest.FullTextResult",
             "com.couchbase.cbforest.Indexer",
             "com.couchbase.cbforest.Logger",
             "com.couchbase.cbforest.QueryIterator",
@@ -62,6 +63,7 @@ task cleanJniHeaders(type: Delete, description: 'Clean JNI C header files') {
     delete "vendor/cbforest/Java/jni/com_couchbase_cbforest_Document.h"
     delete "vendor/cbforest/Java/jni/com_couchbase_cbforest_DocumentIterator.h"
     delete "vendor/cbforest/Java/jni/com_couchbase_cbforest_ForestException.h"
+    delete "vendor/cbforest/Java/jni/com_couchbase_cbforest_FullTextResult.h"
     delete "vendor/cbforest/Java/jni/com_couchbase_cbforest_Indexer.h"
     delete "vendor/cbforest/Java/jni/com_couchbase_cbforest_Logger.h"
     delete "vendor/cbforest/Java/jni/com_couchbase_cbforest_QueryIterator.h"
@@ -295,6 +297,7 @@ model {
                                 "vendor/cbforest/CBForest/Database.cc",
                                 "vendor/cbforest/CBForest/DocEnumerator.cc",
                                 "vendor/cbforest/CBForest/Document.cc",
+                                "vendor/cbforest/CBForest/FullTextIndex.cc",
                                 "vendor/cbforest/CBForest/Geohash.cc",
                                 "vendor/cbforest/CBForest/GeoIndex.cc",
                                 "vendor/cbforest/CBForest/Index.cc",

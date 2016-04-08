@@ -57,6 +57,7 @@ LOCAL_CPPFLAGS	+=	-fpermissive
 LOCAL_CPPFLAGS	+=	-frtti
 LOCAL_CPPFLAGS	+=	-D__ANDROID__
 LOCAL_CPPFLAGS	+=	-DC4DB_THREADSAFE
+LOCAL_CPPFLAGS	+=	-DFORESTDB_VERSION=\"internal\"
 #LOCAL_CPPFLAGS	+=	-DNO_CBFOREST_ENCRYPTION
 
 # this requires for stdint.h active if android sdk is lower than or equal to android-19
@@ -165,6 +166,8 @@ LOCAL_SRC_FILES :=	$(SQLITE3_PATH)/fts3_unicode2.c \
 					$(CBFOREST_PATH)/Database.cc \
 					$(CBFOREST_PATH)/DocEnumerator.cc \
 					$(CBFOREST_PATH)/Document.cc \
+					$(CBFOREST_PATH)/Error.cc \
+					$(CBFOREST_PATH)/FullTextIndex.cc \
 					$(CBFOREST_PATH)/Geohash.cc \
 					$(CBFOREST_PATH)/GeoIndex.cc \
 					$(CBFOREST_PATH)/Index.cc \
