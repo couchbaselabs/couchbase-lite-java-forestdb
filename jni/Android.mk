@@ -1,34 +1,34 @@
 # File: Android.mk
 LOCAL_PATH := $(call my-dir)
+PARENT_LOCAL_PATH := $(wildcard ..)
+
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := libcrypto
-LOCAL_SRC_FILES := $(LOCAL_PATH)/../vendor/cbforest/vendor/openssl/libs/android/$(TARGET_ARCH_ABI)/libcrypto.a
+LOCAL_SRC_FILES := $(PARENT_LOCAL_PATH)/vendor/cbforest/vendor/openssl/libs/android/$(TARGET_ARCH_ABI)/libcrypto.a
 include $(PREBUILT_STATIC_LIBRARY)
-
 
 
 include $(CLEAR_VARS)
 
 LOCAL_MODULE	:=	CouchbaseLiteJavaForestDB
 
-FORESTDB_PATH   :=  $(LOCAL_PATH)/../vendor/cbforest/vendor/forestdb
-SNAPPY_PATH     :=  $(LOCAL_PATH)/../vendor/cbforest/vendor/snappy
-SQLITE3_PATH   	:=  $(LOCAL_PATH)/../vendor/cbforest/vendor/sqlite3-unicodesn
-SQLITE_INC_PATH :=  $(LOCAL_PATH)/../vendor/sqlite
-OPENSSL_PATH    :=  $(LOCAL_PATH)/../vendor/cbforest/vendor/openssl/libs/include
-CBFOREST_PATH   :=  $(LOCAL_PATH)/../vendor/cbforest/CBForest
-CBFOREST_C_PATH  :=  $(LOCAL_PATH)/../vendor/cbforest/C
-CBFOREST_JAVA_PATH  :=  $(LOCAL_PATH)/../vendor/cbforest/Java
-CBFOREST_JNI_PATH   :=  $(LOCAL_PATH)/../vendor/cbforest/Java/jni
-FORESTDB_STORE_PATH :=  $(LOCAL_PATH)/source
+FORESTDB_PATH   :=  $(PARENT_LOCAL_PATH)/vendor/cbforest/vendor/forestdb
+SNAPPY_PATH     :=  $(PARENT_LOCAL_PATH)/vendor/cbforest/vendor/snappy
+SQLITE3_PATH   	:=  $(PARENT_LOCAL_PATH)/vendor/cbforest/vendor/sqlite3-unicodesn
+SQLITE_INC_PATH :=  $(PARENT_LOCAL_PATH)/vendor/sqlite
+OPENSSL_PATH    :=  $(PARENT_LOCAL_PATH)/vendor/cbforest/vendor/openssl/libs/include
+CBFOREST_PATH   :=  $(PARENT_LOCAL_PATH)/vendor/cbforest/CBForest
+CBFOREST_C_PATH  :=  $(PARENT_LOCAL_PATH)/vendor/cbforest/C
+CBFOREST_JAVA_PATH  :=  $(PARENT_LOCAL_PATH)/vendor/cbforest/Java
+CBFOREST_JNI_PATH   :=  $(PARENT_LOCAL_PATH)/vendor/cbforest/Java/jni
+FORESTDB_STORE_PATH :=  $(PARENT_LOCAL_PATH)/jni/source
 
 LOCAL_CFLAGS    :=  -I$(SQLITE3_PATH)/libstemmer_c/runtime/ \
 					-I$(SQLITE3_PATH)/libstemmer_c/src_c/ \
 					-I$(SQLITE3_PATH)/ \
 					-I$(SQLITE_INC_PATH)/ \
 					-I$(OPENSSL_PATH)/
-
 
 # For sqlite3-unicodesn
 LOCAL_CFLAGS	+=	-DSQLITE_ENABLE_FTS4 \
