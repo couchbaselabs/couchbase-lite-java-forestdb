@@ -1,3 +1,5 @@
+import org.apache.tools.ant.taskdefs.condition.Os
+
 apply plugin: 'com.android.library'
 apply plugin: "maven"
 
@@ -91,7 +93,10 @@ android {
     // call regular ndk-build(.cmd) script from app directory
     task buildNative(type: Exec, description: 'Compile JNI source via NDK') {
         def ndkDir = android.ndkDirectory
-        commandLine "$ndkDir/ndk-build", '-C', file('jni').absolutePath
+        def ndkBuild = "$ndkDir/ndk-build"
+        if(Os.isFamily(Os.FAMILY_WINDOWS))
+            ndkBuild = "$ndkDir\\ndk-build.cmd"
+        commandLine "$ndkBuild", '-C', file('jni').absolutePath
     }
 
     buildNative.dependsOn 'generateCBForestJniHeaders'
@@ -103,7 +108,10 @@ android {
 
     task cleanNative(type: Exec, description: 'Clean JNI object files') {
         def ndkDir = android.ndkDirectory
-        commandLine "$ndkDir/ndk-build", '-C', file('jni').absolutePath, 'clean'
+        def ndkBuild = "$ndkDir/ndk-build"
+        if(Os.isFamily(Os.FAMILY_WINDOWS))
+            ndkBuild = "$ndkDir\\ndk-build.cmd"
+        commandLine "$ndkBuild", '-C', file('jni').absolutePath, 'clean'
     }
     cleanNative.dependsOn 'cleanJniHeaders'
     clean.dependsOn 'cleanNative'
