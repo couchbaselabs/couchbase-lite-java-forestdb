@@ -101,24 +101,24 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
     // Constructor
     ///////////////////////////////////////////////////////////////////////////
 
-    protected ForestDBViewStore(ForestDBStore dbStore, String name, boolean create) throws CouchbaseLiteException{
+    protected ForestDBViewStore(ForestDBStore dbStore, String name, boolean create) throws CouchbaseLiteException {
         this._dbStore = dbStore;
         this.name = name;
         this._path = new File(dbStore.directory, viewNameToFileName(name)).getPath();
         File file = new File(this._path);
-        if(!file.exists()){
+        if (!file.exists()) {
             // migration:
             {
                 // if old index file exists, rename it to new name
                 File oldFile = new File(dbStore.directory, oldViewNameToFileName(name));
-                if(oldFile.exists()){
-                    if(oldFile.renameTo(file))
+                if (oldFile.exists() && !oldFile.equals(file)) {
+                    if (oldFile.renameTo(file))
                         return;
                     // if fail to rename, delete it and create new one from scratch.
                     oldFile.delete();
                 }
             }
-            if(!create)
+            if (!create)
                 throw new CouchbaseLiteException(Status.NOT_FOUND);
             try {
                 openIndex(Database.Create, true);
@@ -744,7 +744,7 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
         return escapeViewName(viewName) + "." + kViewIndexPathExtension;
     }
 
-    private static String escapeViewName(String viewName)throws CouchbaseLiteException {
+    private static String escapeViewName(String viewName) throws CouchbaseLiteException {
         try {
             viewName = URLEncoder.encode(viewName, "UTF-8");
         } catch (UnsupportedEncodingException e) {
@@ -755,7 +755,7 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
         return viewName;
     }
 
-    private static String unescapeViewName(String viewName)throws CouchbaseLiteException {
+    private static String unescapeViewName(String viewName) throws CouchbaseLiteException {
         viewName = viewName.replaceAll("%2A", "*");
         try {
             viewName = URLDecoder.decode(viewName, "UTF-8");
@@ -765,12 +765,6 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
         }
         return viewName;
     }
-
-//    private static String OS = System.getProperty("os.name").toLowerCase();
-//
-//    private static boolean isWindows(){
-//        return (OS.indexOf("win") >= 0);
-//    }
 
     /**
      * Are key1 and key2 grouped together at this groupLevel?
