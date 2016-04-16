@@ -297,6 +297,7 @@ model {
                                 "vendor/cbforest/CBForest/Database.cc",
                                 "vendor/cbforest/CBForest/DocEnumerator.cc",
                                 "vendor/cbforest/CBForest/Document.cc",
+                                "vendor/cbforest/CBForest/Error.cc",
                                 "vendor/cbforest/CBForest/FullTextIndex.cc",
                                 "vendor/cbforest/CBForest/Geohash.cc",
                                 "vendor/cbforest/CBForest/GeoIndex.cc",
@@ -390,7 +391,8 @@ model {
                         "-D_USRDLL",
                         "-D_ALLOW_KEYWORD_MACROS",
                         "-DCBFOREST_EXPORTS",
-                        "-DC4DB_THREADSAFE"
+                        "-DC4DB_THREADSAFE",
+                        "-DFORESTDB_VERSION=\"internal\""
                 } else {
                     cppCompiler.args "-Wformat-security",
                         "-Wmissing-declarations",
@@ -405,7 +407,8 @@ model {
                         "-D_DOC_COMP",
                         "-DHAVE_GCC_ATOMICS=1",
                         "-D__unused=",
-                        "-DC4DB_THREADSAFE"
+                        "-DC4DB_THREADSAFE",
+                        "-DFORESTDB_VERSION=\"internal\""
                 }
 
                 // Link with commonCrypto for OSX or libcrypto for the others:
