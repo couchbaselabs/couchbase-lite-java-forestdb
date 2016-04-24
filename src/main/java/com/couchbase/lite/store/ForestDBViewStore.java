@@ -169,7 +169,13 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
 
     @Override
     public void deleteIndex() {
-        if(_index!=null) _index.closeView();
+        if (_index != null) {
+            try {
+                _index.eraseIndex();
+            } catch (ForestException e) {
+                Log.e(TAG, "Failed to eraseIndex: " + _index);
+            }
+        }
     }
 
     @Override
@@ -218,6 +224,10 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
     @Override
     public Status updateIndexes(List<ViewStore> inputViews) throws CouchbaseLiteException {
         assert (inputViews != null);
+
+        // workaround
+        if(!inputViews.contains(this))
+            inputViews.add(this);
 
         final ArrayList<View> views = new ArrayList<View>();
         final ArrayList<Mapper> mapBlocks = new ArrayList<Mapper>();
@@ -430,8 +440,6 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
             throw new CouchbaseLiteException(Status.UNKNOWN);
         }
         finally {
-            if (itr != null)
-                itr.free();
         }
         return rows;
 
@@ -506,8 +514,6 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
             Log.e(TAG, "Error in reducedQuery()", e);
             throw new CouchbaseLiteException(Status.UNKNOWN);
         } finally {
-            if (itr != null)
-                itr.free();
         }
 
         if (keysToReduce != null && keysToReduce.size() > 0) {
@@ -557,7 +563,6 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
         } catch (Exception ex) {
             Log.e(TAG, "Error in dump()", ex);
         } finally {
-            if (itr != null) itr.free();
         }
         return result;
     }
@@ -616,10 +621,13 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
         // TODO
         //NSObject cancelPreviousPerformRequestsWithTarget: self selector: @selector(closeIndex) object: nil];
 
-        if (_index != null) {
-            _index.closeView();
-            _index = null;
-        }
+        if (_index != null)
+            try {
+                _index.close();
+                _index = null;
+            } catch (ForestException e) {
+                Log.e(TAG, "Failed to close Index: " + _index);
+            }
     }
 
     private boolean deleteViewFiles() {

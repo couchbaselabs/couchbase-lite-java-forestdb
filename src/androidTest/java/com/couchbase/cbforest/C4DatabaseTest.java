@@ -307,7 +307,6 @@ public class C4DatabaseTest extends C4TestCase {
             doc.free();
             i++;
         }
-        itr.free();
         assertEquals(100, i);
 
         // Start and end ID:
@@ -321,7 +320,6 @@ public class C4DatabaseTest extends C4TestCase {
             i++;
         }
         assertEquals(91, i);
-        itr.free();
 
         // Some docs, by ID:
         String[] docIDs = {"doc-042","doc-007","bogus","doc-001"};
@@ -337,7 +335,6 @@ public class C4DatabaseTest extends C4TestCase {
             i++;
         }
         assertEquals(4, i);
-        itr.free();
     }
 
     public void testAllDocsIncludeDeleted() throws ForestException {
@@ -359,7 +356,6 @@ public class C4DatabaseTest extends C4TestCase {
             i++;
         }
         assertEquals(9, i);
-        itr.free();
     }
 
     public void testAllDocsInfo() throws ForestException {
@@ -384,7 +380,6 @@ public class C4DatabaseTest extends C4TestCase {
             doc.free();
             i++;
         }
-        itr.free();
         assertEquals(100, i);
     }
 
@@ -409,7 +404,6 @@ public class C4DatabaseTest extends C4TestCase {
             seq++;
         }
         assertEquals(100L, seq);
-        itr.free();
 
         // Since 6:
         itr = new DocumentIterator(db._handle, 6, iteratorFlags);
@@ -423,6 +417,5 @@ public class C4DatabaseTest extends C4TestCase {
             seq++;
         }
         assertEquals(100L, seq);
-        itr.free();
     }
 }

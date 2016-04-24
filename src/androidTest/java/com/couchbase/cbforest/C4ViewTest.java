@@ -82,7 +82,6 @@ public class C4ViewTest extends C4TestCase {
                     indexer.emit(doc, 0, keys, values);
                 }
             }finally {
-                itr.free();
             }
             commit = true;
         }finally {
@@ -120,7 +119,6 @@ public class C4ViewTest extends C4TestCase {
             assertEquals(200, i);
         }
         finally {
-            e.free();
         }
     }
 
@@ -128,7 +126,7 @@ public class C4ViewTest extends C4TestCase {
         createIndex();
 
         // Reopen view with same version string:
-        view.closeView();
+        view.close();
         view = null;
         view = new View(db, indexFile.getPath(), Database.Create, 0, null,"myview", "1");
         assertNotNull(view);
@@ -138,7 +136,7 @@ public class C4ViewTest extends C4TestCase {
         assertEquals(100, view.getLastSequenceChangedAt());
 
         // Reopen view with different version string:
-        view.closeView();
+        view.close();
         view = null;
         view = new View(db, indexFile.getPath(), Database.Create, 0, null,"myview", "2");
         assertNotNull(view);
@@ -180,7 +178,6 @@ public class C4ViewTest extends C4TestCase {
                     i++;
                 }
             }finally {
-                itr.free();
             }
             commit = true;
         }finally {

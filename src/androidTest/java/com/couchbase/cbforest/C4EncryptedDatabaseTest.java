@@ -14,8 +14,6 @@
  */
 package com.couchbase.cbforest;
 
-import junit.framework.Assert;
-
 import java.io.File;
 
 public class C4EncryptedDatabaseTest extends C4DatabaseTest{
@@ -74,7 +72,7 @@ public class C4EncryptedDatabaseTest extends C4DatabaseTest{
         }
 
         // Close database:
-        unEnDb.free();
+        unEnDb.close();
         unEnDb = null;
 
         // Open database with an encryption key:
