@@ -167,10 +167,13 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
 
     @Override
     public void close() {
-        if (forest != null) {
-            forest.free();
-            forest = null;
-        }
+        if (forest != null)
+            try {
+                forest.close();
+                forest = null;
+            } catch (ForestException e) {
+                Log.e(TAG, "Failed to close Database: " + forest);
+            }
     }
 
     @Override
@@ -566,7 +569,6 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                         } while (doc.selectNextLeaf(true, false));
                     }
                 } finally {
-                    itr.free();
                 }
             }
         }
@@ -709,7 +711,6 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                         break;
                 }
             } finally {
-                itr.free();
             }
         }catch (ForestException e){
             Log.e(TAG, "Error in getAllDocs()", e);
@@ -760,7 +761,6 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                 }
 
             } finally {
-                itr.free();
             }
         }catch(ForestException e){
             Log.e(TAG, "Error in changesSince()", e);

@@ -79,7 +79,7 @@ public class C4TestCase extends AndroidTestCase implements Constants{
     protected void tearDown() throws Exception {
 
         if (db != null) {
-            db.free();
+            db.close();
             db = null;
         }
 
