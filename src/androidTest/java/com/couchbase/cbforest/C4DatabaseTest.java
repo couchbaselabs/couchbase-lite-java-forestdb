@@ -24,6 +24,35 @@ import java.util.Random;
  */
 public class C4DatabaseTest extends C4TestCase {
 
+    public void testErrorMessage() {
+        try {
+            new Database("", 0, 0, null);
+            fail();
+        } catch (ForestException e) {
+            assertEquals(Constants.C4ErrorDomain.ForestDBDomain, e.domain);
+            assertEquals(Constants.FDBErrors.FDB_RESULT_NO_SUCH_FILE, e.code);
+            assertEquals("no such file", e.getMessage());
+        }
+
+        try {
+            db.getDocument("a", true);
+            fail();
+        } catch (ForestException e) {
+            assertEquals(Constants.C4ErrorDomain.ForestDBDomain, e.domain);
+            assertEquals(Constants.FDBErrors.FDB_RESULT_KEY_NOT_FOUND, e.code);
+            assertEquals("key not found", e.getMessage());
+        }
+
+        try {
+            db.getDocument(null, true);
+            fail();
+        } catch (ForestException e) {
+            assertEquals(Constants.C4ErrorDomain.ForestDBDomain, e.domain);
+            assertEquals(Constants.FDBErrors.FDB_RESULT_INVALID_ARGS, e.code);
+            assertEquals("invalid arguments", e.getMessage());
+        }
+    }
+
     public void testTransaction() throws ForestException {
         assertEquals(0, db.getDocumentCount());
         assertFalse(db.isInTransaction());
