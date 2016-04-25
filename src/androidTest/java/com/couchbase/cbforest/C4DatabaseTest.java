@@ -38,7 +38,6 @@ public class C4DatabaseTest extends C4TestCase {
             db.getDocument("a", true);
             fail();
         } catch (ForestException e) {
-            e.printStackTrace();
             assertEquals(Constants.C4ErrorDomain.ForestDBDomain, e.domain);
             assertEquals(Constants.FDBErrors.FDB_RESULT_KEY_NOT_FOUND, e.code);
             assertEquals("key not found", e.getMessage());
@@ -48,7 +47,6 @@ public class C4DatabaseTest extends C4TestCase {
             db.getDocument(null, true);
             fail();
         } catch (ForestException e) {
-            e.printStackTrace();
             assertEquals(Constants.C4ErrorDomain.ForestDBDomain, e.domain);
             assertEquals(Constants.FDBErrors.FDB_RESULT_INVALID_ARGS, e.code);
             assertEquals("invalid arguments", e.getMessage());
