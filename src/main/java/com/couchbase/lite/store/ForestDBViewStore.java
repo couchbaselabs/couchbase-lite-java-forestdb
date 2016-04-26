@@ -1,12 +1,12 @@
 /**
  * Created by Hideki Itakura on 10/20/2015.
  * Copyright (c) 2015 Couchbase, Inc All rights reserved.
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
  * except in compliance with the License. You may obtain a copy of the License at
- *
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software distributed under the
  * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
  * either express or implied. See the License for the specific language governing permissions
@@ -51,10 +51,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
+public class ForestDBViewStore implements ViewStore, QueryRowStore, Constants {
     public static String TAG = Log.TAG_VIEW;
 
-    public static final String  kViewIndexPathExtension = "viewindex";
+    public static final String kViewIndexPathExtension = "viewindex";
     // Size of ForestDB buffer cache allocated for a database
     private static final BigInteger kDBBufferCacheSize = new BigInteger("8388608");
 
@@ -65,24 +65,6 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
     private static final Float kCloseDelay = 60.0f;
 
     private static final int REDUCE_BATCH_SIZE = 100;
-
-    /**
-     * in CBLView.h
-     * enum CBLViewIndexType
-     */
-    public enum CBLViewIndexType {
-        kUnknown(-1),
-        kCBLMapReduceIndex(1), // < Regular map/reduce _index with JSON keys.
-        kCBLFullTextIndex(2),  // < Keys must be strings and will be indexed by the words they contain.
-        kCBLGeoIndex(3);       // < Geo-query _index; not supported yet.
-        private int value;
-        CBLViewIndexType(int value) {
-            this.value = value;
-        }
-        public int getValue() {
-            return value;
-        }
-    }
 
     ///////////////////////////////////////////////////////////////////////////
     // ForestDBViewStore
@@ -95,19 +77,20 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
     // private
     private ForestDBStore _dbStore;
     private String _path;
-    private View _index;
+    private View _view;
 
     ///////////////////////////////////////////////////////////////////////////
     // Constructor
     ///////////////////////////////////////////////////////////////////////////
 
-    protected ForestDBViewStore(ForestDBStore dbStore, String name, boolean create) throws CouchbaseLiteException {
+    protected ForestDBViewStore(ForestDBStore dbStore, String name, boolean create)
+            throws CouchbaseLiteException {
         this._dbStore = dbStore;
         this.name = name;
         this._path = new File(dbStore.directory, viewNameToFileName(name)).getPath();
         File file = new File(this._path);
         if (!file.exists()) {
-            // migration:
+            // migration: CBL Android/Java specific
             {
                 // if old index file exists, rename it to new name
                 File oldFile = new File(dbStore.directory, oldViewNameToFileName(name));
@@ -169,11 +152,11 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
 
     @Override
     public void deleteIndex() {
-        if (_index != null) {
+        if (_view != null) {
             try {
-                _index.eraseIndex();
+                _view.eraseIndex();
             } catch (ForestException e) {
-                Log.e(TAG, "Failed to eraseIndex: " + _index);
+                Log.e(TAG, "Failed to eraseIndex: " + _view);
             }
         }
     }
@@ -185,6 +168,7 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
 
     @Override
     public boolean setVersion(String version) {
+        closeIndex();
         return true;
     }
 
@@ -194,31 +178,31 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
             openIndex();
         } catch (ForestException e) {
             Log.e(TAG, "Exception opening index while getting total rows", e);
-            return -1;
+            return 0;
         }
-        return (int)_index.getTotalRows();
+        return (int) _view.getTotalRows();
     }
 
     @Override
     public long getLastSequenceIndexed() {
         try {
-            openIndex(); // in case the _mapVersion changed, invalidating the _index
+            openIndex(); // in case the _mapVersion changed, invalidating the _view
         } catch (ForestException e) {
             Log.e(TAG, "Exception opening index while getting last sequence indexed", e);
             return -1;
         }
-        return _index.getLastSequenceIndexed();
+        return _view.getLastSequenceIndexed();
     }
 
     @Override
     public long getLastSequenceChangedAt() {
         try {
-            openIndex(); // in case the _mapVersion changed, invalidating the _index
+            openIndex(); // in case the _mapVersion changed, invalidating the _view
         } catch (ForestException e) {
             Log.e(TAG, "Exception opening index while getting last sequence changed at", e);
             return -1;
         }
-        return _index.getLastSequenceChangedAt();
+        return _view.getLastSequenceChangedAt();
     }
 
     @Override
@@ -226,30 +210,28 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
         assert (inputViews != null);
 
         // workaround
-        if(!inputViews.contains(this))
+        if (!inputViews.contains(this))
             inputViews.add(this);
 
-        final ArrayList<View> views = new ArrayList<View>();
-        final ArrayList<Mapper> mapBlocks = new ArrayList<Mapper>();
-        final ArrayList<String> docTypes = new ArrayList<String>();
+        final ArrayList<View> views = new ArrayList<View>(inputViews.size());
+        final ArrayList<Mapper> mapBlocks = new ArrayList<Mapper>(inputViews.size());
+        final ArrayList<String> docTypes = new ArrayList<String>(inputViews.size());
         boolean useDocType = false;
-        for(ViewStore v : inputViews) {
-            ForestDBViewStore view = (ForestDBViewStore)v;
+        for (ViewStore v : inputViews) {
+            ForestDBViewStore view = (ForestDBViewStore) v;
             ViewStoreDelegate delegate = view.getDelegate();
             Mapper map = delegate != null ? delegate.getMap() : null;
             if (map == null) {
                 Log.v(Log.TAG_VIEW, "    %s has no map block; skipping it", view.getName());
                 continue;
             }
-
             try {
                 view.openIndex();
             } catch (ForestException e) {
-                throw new CouchbaseLiteException(e.code);
+                throw new CouchbaseLiteException(ForestBridge.err2status(e));
             }
-            views.add(view._index);
+            views.add(view._view);
             mapBlocks.add(map);
-
             String docType = delegate.getDocumentType();
             docTypes.add(docType);
             if (docType != null && !useDocType)
@@ -265,51 +247,70 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
         Indexer indexer = null;
         try {
             indexer = new Indexer(views.toArray(new View[views.size()]));
-            indexer.triggerOnView(this._index);
-            DocumentIterator it = null;
+            indexer.triggerOnView(this._view);
+            DocumentIterator itr;
             try {
-                it = indexer.iterateDocuments();
-                if (it == null)
+                itr = indexer.iterateDocuments();
+                if (itr == null)
                     return new Status(Status.NOT_MODIFIED);
             } catch (ForestException e) {
                 if (e.code == FDBErrors.FDB_RESULT_SUCCESS)
                     return new Status(Status.NOT_MODIFIED);
                 else
-                    throw e;
+                    throw new CouchbaseLiteException(ForestBridge.err2status(e));
             }
-
+            // Now enumerate the docs:
             Document doc;
-            while ((doc = it.nextDocument()) != null) {
-                String docType = useDocType ? doc.getType() : null;
-                boolean validDocToIndex = !doc.deleted() && !doc.getDocID().startsWith("_design/");
-                for (int viewNumber = 0; viewNumber < views.size(); viewNumber++) {
-                    if (!indexer.shouldIndex(doc, viewNumber))
-                        continue;
-
-                    boolean indexIt = validDocToIndex;
-                    if (indexIt && useDocType) {
-                        String viewDocType = docTypes.get(viewNumber);
-                        if (viewDocType != null)
-                            indexIt = viewDocType.equals(docType);
+            while ((doc = itr.nextDocument()) != null) {
+                // For each updated document:
+                try {
+                    String docType = useDocType ? doc.getType() : null;
+                    // Skip design docs
+                    boolean validDocToIndex =
+                            !doc.deleted() && !doc.getDocID().startsWith("_design/");
+                    // Read the document body:
+                    Map<String, Object> body = ForestBridge.bodyOfSelectedRevision(doc);
+                    body.put("_id", doc.getDocID());
+                    body.put("_rev", doc.getRevID());
+                    body.put("_local_seq", doc.getSequence());
+                    if (doc.conflicted()) {
+                        List<String> currentRevIDs = ForestBridge.getCurrentRevisionIDs(doc);
+                        if (currentRevIDs != null && currentRevIDs.size() > 1)
+                            body.put("_conflicts",
+                                    currentRevIDs.subList(1, currentRevIDs.size()));
                     }
+                    // Feed it to each view's map function:
+                    for (int viewNumber = 0; viewNumber < views.size(); viewNumber++) {
+                        if (!indexer.shouldIndex(doc, viewNumber))
+                            continue;
 
-                    if (indexIt)
-                        emit(indexer, viewNumber, doc, mapBlocks.get(viewNumber));
-                    else
-                        emit(indexer, viewNumber, doc, null);
+                        boolean indexIt = validDocToIndex;
+                        if (indexIt && useDocType) {
+                            String viewDocType = docTypes.get(viewNumber);
+                            if (viewDocType != null)
+                                indexIt = viewDocType.equals(docType);
+                        }
+
+                        if (indexIt)
+                            emit(indexer, viewNumber, doc, body, mapBlocks.get(viewNumber));
+                        else
+                            emit(indexer, viewNumber, doc, body, null);
+                    }
+                } finally {
+                    doc.free();
                 }
             }
             success = true;
         } catch (ForestException e) {
-            throw new CouchbaseLiteException(e, e.code);
+            throw new CouchbaseLiteException(ForestBridge.err2status(e));
         } finally {
             if (indexer != null) {
                 try {
                     indexer.endIndex(success);
                 } catch (ForestException ex) {
-                    Log.e(TAG, "Cannot end index", ex);
+                    Log.e(TAG, "Failed to call Indexer.endIndex(boolean)", ex);
                     if (success)
-                        throw new CouchbaseLiteException(ex, ex.code);
+                        throw new CouchbaseLiteException(ForestBridge.err2status(ex));
                 }
             }
         }
@@ -317,22 +318,14 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
         return new Status(Status.OK);
     }
 
-    private void emit(Indexer indexer, int viewNumber, Document doc, Mapper mapper)
+    private void emit(Indexer indexer, int viewNumber, Document doc,
+                      Map<String, Object> properties, Mapper mapper)
             throws ForestException, CouchbaseLiteException {
         final List<Object> keys = new ArrayList<Object>();
         final List<byte[]> values = new ArrayList<byte[]>();
         if (mapper != null) {
-            RevisionInternal rev = ForestBridge.revisionObjectFromForestDoc(doc, null, true);
-            Map<String, Object> properties = rev.getProperties();
-            properties.put("_local_seq", rev.getSequence());
-
-            if (doc.conflicted()) {
-                List<String> currentRevIDs = ForestBridge.getCurrentRevisionIDs(doc, false);
-                if (currentRevIDs != null && currentRevIDs.size() > 1)
-                    properties.put("_conflicts", currentRevIDs.subList(1, currentRevIDs.size()));
-            }
-
             try {
+                // Set up the emit block:
                 mapper.map(properties, new Emitter() {
                     @Override
                     public void emit(Object key, Object value) {
@@ -381,24 +374,24 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
         }
 
         List<QueryRow> rows = new ArrayList<QueryRow>();
-
-        QueryIterator itr = null;
+        QueryIterator itr;
         try {
-            itr = runForestQuery(options);
+            itr = forestQuery(options);
             while (itr.next()) {
                 RevisionInternal docRevision = null;
                 byte[] bKey = itr.keyJSON();
                 byte[] bValue = itr.valueJSON();
-                Object key = bKey != null ? Manager.getObjectMapper().readValue(bKey, Object.class) : null;
-                Object value = bValue != null ? Manager.getObjectMapper().readValue(bValue, Object.class) : null;
+                Object key = fromJSON(bKey, Object.class);
+                Object value = fromJSON(bValue, Object.class);
                 String docID = itr.docID();
                 long sequence = itr.sequence();
-                if(options.isIncludeDocs()){
+                if (options.isIncludeDocs()) {
                     String linkedID = null;
-                    if(value instanceof Map)
+                    if (value instanceof Map)
                         linkedID = (String) ((Map) value).get("_id");
                     if (linkedID != null) {
-                        // Linked document: http://wiki.apache.org/couchdb/Introduction_to_CouchDB_views#Linked_documents
+                        // http://wiki.apache.org/couchdb/Introduction_to_CouchDB_views
+                        // #Linked_documents
                         String linkedRev = (String) ((Map) value).get("_rev");
                         docRevision = _dbStore.getDocument(linkedID, linkedRev, true);
                         sequence = docRevision.getSequence();
@@ -406,15 +399,12 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
                         docRevision = _dbStore.getDocument(docID, null, true);
                     }
                 }
-                Log.d(TAG, "Query %s: Found row with key=%s, value=%s, id=%s",
-                        name,
-                        key == null ? "" : key,
-                        value == null ? "" : value,
-                        docID);
+                Log.v(TAG, "Query %s: Found row with key=%s, value=%s, id=%s",
+                        name, key == null ? "" : key, value == null ? "" : value, docID);
+                // Create a CBLQueryRow:
                 QueryRow row = new QueryRow(docID, sequence,
                         key, value,
                         docRevision, this);
-
                 if (postFilter != null) {
                     if (!postFilter.apply(row)) {
                         continue;
@@ -424,32 +414,25 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
                         continue;
                     }
                 }
-
                 rows.add(row);
-
-                if(--limit == 0)
+                if (--limit == 0)
                     break;
             }
-        }
-        catch (ForestException e){
+        } catch (ForestException e) {
             Log.e(TAG, "Error in regularQuery()", e);
             throw new CouchbaseLiteException(e.code);
-        }
-        catch (IOException e){
+        } catch (IOException e) {
             Log.e(TAG, "Error in regularQuery()", e);
             throw new CouchbaseLiteException(Status.UNKNOWN);
         }
-        finally {
-        }
         return rows;
-
     }
 
     /**
      * Queries the view, with reducing or grouping as per the options.
      * in CBL_ForestDBViewStorage.m
      * - (CBLQueryIteratorBlock) reducedQueryWithOptions: (CBLQueryOptions*)options
-     *                                            status: (CBLStatus*)outStatus
+     * status: (CBLStatus*)outStatus
      */
     @Override
     public List<QueryRow> reducedQuery(QueryOptions options) throws CouchbaseLiteException {
@@ -460,9 +443,8 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
         Reducer reduce = delegate.getReduce();
         if (options.isReduceSpecified()) {
             if (options.isReduce() && reduce == null) {
-                Log.w(TAG, String.format(
-                        "Cannot use reduce option in view %s which has no reduce block defined",
-                        name));
+                Log.w(TAG, "Cannot use reduce option in view %s which has no reduce block defined",
+                        name);
                 throw new CouchbaseLiteException(new Status(Status.BAD_PARAM));
             }
         }
@@ -480,22 +462,21 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
             throw new CouchbaseLiteException(e.code);
         }
 
-        QueryIterator itr = null;
+        QueryIterator itr;
         try {
-            itr = runForestQuery(options);
-            while(itr.next()){
-                RevisionInternal docRevision = null;
+            itr = forestQuery(options);
+
+            while (itr.next()) {
                 byte[] bKey = itr.keyJSON();
                 byte[] bValue = itr.valueJSON();
-                Object keyObject = bKey != null ? Manager.getObjectMapper().readValue(bKey, Object.class) : null;
-                Object valueObject = bValue != null ? Manager.getObjectMapper().readValue(bValue, Object.class) : null;
+                Object keyObject = fromJSON(bKey, Object.class);
+                Object valueObject = fromJSON(bValue, Object.class);
                 if (group && !groupTogether(keyObject, lastKeys[0], groupLevel)) {
                     if (lastKeys[0] != null) {
                         // This pair starts a new group, so reduce & record the last one:
                         Object key = groupKey(lastKeys[0], groupLevel);
                         Object reduced = (reduce != null) ?
-                                reduce.reduce(keysToReduce, valuesToReduce, false) :
-                                null;
+                                reduce.reduce(keysToReduce, valuesToReduce, false) : null;
                         QueryRow row = new QueryRow(null, 0, key, reduced, null, that);
                         if (postFilter == null || postFilter.apply(row))
                             rows.add(row);
@@ -508,26 +489,23 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
                 keysToReduce.add(keyObject);
                 valuesToReduce.add(valueObject);
             }
+
         } catch (ForestException e) {
             Log.e(TAG, "Error in reducedQuery()", e);
-        } catch (IOException e){
+        } catch (IOException e) {
             Log.e(TAG, "Error in reducedQuery()", e);
             throw new CouchbaseLiteException(Status.UNKNOWN);
-        } finally {
         }
 
         if (keysToReduce != null && keysToReduce.size() > 0) {
             // Finish the last group (or the entire list, if no grouping):
             Object key = group ? groupKey(lastKeys[0], groupLevel) : null;
             Object reduced = (reduce != null) ?
-                    reduce.reduce(keysToReduce, valuesToReduce, false) :
-                    null;
-            Log.v(TAG, String.format("Query %s: Reduced to key=%s, value=%s",
-                    name, key, reduced));
+                    reduce.reduce(keysToReduce, valuesToReduce, false) : null;
+            Log.v(TAG, String.format("Query %s: Reduced to key=%s, value=%s", name, key, reduced));
             QueryRow row = new QueryRow(null, 0, key, reduced, null, that);
-            if (postFilter == null || postFilter.apply(row)) {
+            if (postFilter == null || postFilter.apply(row))
                 rows.add(row);
-            }
         }
         return rows;
     }
@@ -542,27 +520,19 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
         }
 
         List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
-        QueryIterator itr = null;
         try {
-            itr = runForestQuery(new QueryOptions());
+            QueryIterator itr = forestQuery(new QueryOptions());
             while (itr.next()) {
                 Map<String, Object> dict = new HashMap<String, Object>();
                 dict.put("key", new String(itr.keyJSON()));
 
                 byte[] bytes = itr.valueJSON();
-                if(bytes != null) {
-                    Object obj = Manager.getObjectMapper().readValue(bytes, Object.class);
-                    dict.put("value", obj);
-                }
-                else{
-                    dict.put("value", null);
-                }
+                dict.put("value", fromJSON(bytes, Object.class));
                 dict.put("seq", itr.sequence());
                 result.add(dict);
             }
         } catch (Exception ex) {
             Log.e(TAG, "Error in dump()", ex);
-        } finally {
         }
         return result;
     }
@@ -576,7 +546,7 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
     // Internal (Protected/Private)  Methods
     ///////////////////////////////////////////////////////////////////////////
 
-    // Opens the index. You MUST call this (or a method that calls it) before dereferencing _index.
+    // Opens the index. You MUST call this (or a method that calls it) before dereferencing _view.
     private View openIndex() throws ForestException {
         return openIndex(Database.Create);
     }
@@ -591,9 +561,7 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
      * - (MapReduceIndex*) openIndexWithOptions: (Database::openFlags)options
      */
     private View openIndex(int flags, boolean dryRun) throws ForestException {
-        if (_index == null) {
-            //Log.e(TAG, "[openIndex()] name => `%s`, delegate.getMapVersion() => `%s`", name, delegate!=null?delegate.getMapVersion():null);
-
+        if (_view == null) {
             // Encryption:
             SymmetricKey encryptionKey = _dbStore.getEncryptionKey();
             int enAlgorithm = Database.NoEncryption;
@@ -603,14 +571,13 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
                 enKey = encryptionKey.getKey();
             }
 
-            _index = new View(_dbStore.forest, _path, flags, enAlgorithm, enKey, name,
+            _view = new View(_dbStore.forest, _path, flags, enAlgorithm, enKey, name,
                     dryRun ? "0" : delegate.getMapVersion());
-            
-            if(dryRun) {
+            if (dryRun) {
                 closeIndex();
             }
         }
-        return _index;
+        return _view;
     }
 
     /**
@@ -618,15 +585,16 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
      * - (void) closeIndex
      */
     private void closeIndex() {
+
         // TODO
         //NSObject cancelPreviousPerformRequestsWithTarget: self selector: @selector(closeIndex) object: nil];
 
-        if (_index != null)
+        if (_view != null)
             try {
-                _index.close();
-                _index = null;
+                _view.close();
+                _view = null;
             } catch (ForestException e) {
-                Log.e(TAG, "Failed to close Index: " + _index);
+                Log.e(TAG, "Failed to close Index: " + _view);
             }
     }
 
@@ -650,12 +618,13 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
 
     /**
      * Starts a view query, returning a CBForest enumerator.
-     * - (IndexEnumerator*) _runForestQueryWithOptions: (CBLQueryOptions*)options
+     * - (C4QueryEnumerator*) _forestQueryWithOptions: (CBLQueryOptions*)options
+     * error: (C4Error*)outError
      */
-    private QueryIterator runForestQuery(QueryOptions options) throws ForestException {
+    private QueryIterator forestQuery(QueryOptions options) throws ForestException {
+        // NOTE: Geo & FullText queries are not supported yet
         if (options == null)
             options = new QueryOptions();
-
         long skip = options.getSkip();
         long limit = options.getLimit();
         boolean descending = options.isDescending();
@@ -663,7 +632,7 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
         boolean inclusiveEnd = options.isInclusiveEnd();
         if (options.getKeys() != null && options.getKeys().size() > 0) {
             Object[] keys = options.getKeys().toArray();
-            return _index.query(
+            return _view.query(
                     skip,
                     limit,
                     descending,
@@ -671,11 +640,12 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
                     inclusiveEnd,
                     keys);
         } else {
-            Object endKey = Misc.keyForPrefixMatch(options.getEndKey(), options.getPrefixMatchLevel());
+            Object endKey = Misc.keyForPrefixMatch(options.getEndKey(),
+                    options.getPrefixMatchLevel());
             Object startKey = options.getStartKey();
             String startKeyDocID = options.getStartKeyDocId();
             String endKeyDocID = options.getEndKeyDocId();
-            return _index.query(
+            return _view.query(
                     skip,
                     limit,
                     descending,
@@ -695,25 +665,25 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
     Action getActionToChangeEncryptionKey() {
         Action action = new Action();
         action.add(
-            new ActionBlock() {
-                @Override
-                public void execute() throws ActionException {
-                    if (!deleteViewFiles()) {
-                        throw new ActionException("Cannot delete view files");
+                new ActionBlock() {
+                    @Override
+                    public void execute() throws ActionException {
+                        if (!deleteViewFiles()) {
+                            throw new ActionException("Cannot delete view files");
+                        }
+                    }
+                },
+                new ActionBlock() {
+                    @Override
+                    public void execute() throws ActionException {
+                        try {
+                            openIndex(Database.Create);
+                        } catch (ForestException e) {
+                            throw new ActionException("Cannot open index", e);
+                        }
+                        closeIndex();
                     }
                 }
-            },
-            new ActionBlock() {
-                @Override
-                public void execute() throws ActionException {
-                    try {
-                        openIndex(Database.Create);
-                    } catch (ForestException e) {
-                        throw new ActionException("Cannot open index", e);
-                    }
-                    closeIndex();
-                }
-            }
         );
         return action;
     }
@@ -723,9 +693,7 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
     ///////////////////////////////////////////////////////////////////////////
 
     protected static String oldFileNameToViewName(String fileName) throws CouchbaseLiteException {
-        if (!fileName.endsWith(kViewIndexPathExtension))
-            throw new CouchbaseLiteException(Status.BAD_PARAM);
-        if (fileName.startsWith("."))
+        if (!fileName.endsWith(kViewIndexPathExtension) || fileName.startsWith("."))
             throw new CouchbaseLiteException(Status.BAD_PARAM);
         String viewName = fileName.substring(0, fileName.indexOf("."));
         return viewName.replaceAll(":", "/");
@@ -738,9 +706,7 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
     }
 
     protected static String fileNameToViewName(String fileName) throws CouchbaseLiteException {
-        if (!fileName.endsWith(kViewIndexPathExtension))
-            throw new CouchbaseLiteException(Status.BAD_PARAM);
-        if (fileName.startsWith("."))
+        if (!fileName.endsWith(kViewIndexPathExtension) || fileName.startsWith("."))
             throw new CouchbaseLiteException(Status.BAD_PARAM);
         String viewName = fileName.substring(0, fileName.indexOf("."));
         return unescapeViewName(viewName);
@@ -759,19 +725,17 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
             Log.w(TAG, "Error to url decode: " + viewName, e);
             throw new CouchbaseLiteException(e, Status.BAD_ENCODING);
         }
-        viewName = viewName.replaceAll("\\*", "%2A");
-        return viewName;
+        return viewName.replaceAll("\\*", "%2A");
     }
 
     private static String unescapeViewName(String viewName) throws CouchbaseLiteException {
         viewName = viewName.replaceAll("%2A", "*");
         try {
-            viewName = URLDecoder.decode(viewName, "UTF-8");
+            return URLDecoder.decode(viewName, "UTF-8");
         } catch (UnsupportedEncodingException e) {
             Log.w(TAG, "Error to url decode: " + viewName, e);
             throw new CouchbaseLiteException(e, Status.BAD_ENCODING);
         }
-        return viewName;
     }
 
     /**
@@ -811,5 +775,12 @@ public class ForestDBViewStore  implements ViewStore, QueryRowStore, Constants {
         } else {
             return key;
         }
+    }
+
+    // helper method
+    private static <T> T fromJSON(byte[] src, Class<T> valueType) throws IOException {
+        if (src == null)
+            return null;
+        return Manager.getObjectMapper().readValue(src, valueType);
     }
 }
