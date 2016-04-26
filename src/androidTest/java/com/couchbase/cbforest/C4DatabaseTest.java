@@ -1,12 +1,12 @@
 /**
  * Created by Hideki Itakura on 10/20/2015.
  * Copyright (c) 2015 Couchbase, Inc All rights reserved.
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
  * except in compliance with the License. You may obtain a copy of the License at
- *
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software distributed under the
  * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
  * either express or implied. See the License for the specific language governing permissions
@@ -24,7 +24,7 @@ import java.util.Random;
  */
 public class C4DatabaseTest extends C4TestCase {
 
-    public void testErrorMessage() {
+    public void testForestException() {
         try {
             new Database("", 0, 0, null);
             fail();
@@ -134,7 +134,7 @@ public class C4DatabaseTest extends C4TestCase {
         try {
             db.rawGet(store, key);
             fail("ForestException should be thrown");
-        }catch(ForestException e){
+        } catch (ForestException e) {
             assertEquals(Constants.C4ErrorDomain.ForestDBDomain, e.domain);
             assertEquals(FDBErrors.FDB_RESULT_KEY_NOT_FOUND, e.code);
         }
@@ -235,7 +235,7 @@ public class C4DatabaseTest extends C4TestCase {
         try {
             doc.getSelectedBody();
             fail("should be thrown exception");
-        }catch(ForestException e){
+        } catch (ForestException e) {
             assertEquals(Constants.C4ErrorDomain.HTTPDomain, e.domain);
             assertEquals(410, e.code);
         }
@@ -254,6 +254,10 @@ public class C4DatabaseTest extends C4TestCase {
             }
         }
     }
+
+    // JNI does not wrap c4doc_getForPut
+    //public void testGetForPut() throws ForestException {
+    //}
 
     public void testInsertRevisionWithHistory() throws ForestException {
         _testInsertRevisionWithHistory(20);
@@ -301,7 +305,11 @@ public class C4DatabaseTest extends C4TestCase {
         assertEquals(kHistoryCount - 2, n);
     }
 
-    private void setupAllDocs()throws ForestException{
+    // JNI does not wrap c4doc_put
+    //public void testPut() throws ForestException {
+    //}
+
+    private void setupAllDocs() throws ForestException {
         for (int i = 1; i < 100; i++) {
             String docID = String.format("doc-%03d", i);
             createRev(docID, kRevID, kBody.getBytes());
@@ -312,29 +320,29 @@ public class C4DatabaseTest extends C4TestCase {
     }
 
     public void testAllDocs() throws ForestException {
-
         setupAllDocs();
-
-        DocumentIterator itr = null;
 
         // No start or end ID:
         int iteratorFlags = IteratorFlags.kDefault;
         iteratorFlags &= ~IteratorFlags.kIncludeBodies;
-        itr = db.iterator(null, null, 0, iteratorFlags);
+        DocumentIterator itr = db.iterator(null, null, 0, iteratorFlags);
         assertNotNull(itr);
         Document doc;
         int i = 1;
         while ((doc = itr.nextDocument()) != null) {
-            String docID = String.format("doc-%03d", i);
-            assertEquals(docID, doc.getDocID());
-            assertEquals(kRevID, doc.getRevID());
-            assertEquals(kRevID, doc.getSelectedRevID());
-            assertEquals(i, doc.getSelectedSequence());
-            assertNull(doc.getSelectedBodyTest());
-            // Doc was loaded without its body, but it should load on demand:
-            assertTrue(Arrays.equals(kBody.getBytes(), doc.getSelectedBody()));
-            doc.free();
-            i++;
+            try {
+                String docID = String.format("doc-%03d", i);
+                assertEquals(docID, doc.getDocID());
+                assertEquals(kRevID, doc.getRevID());
+                assertEquals(kRevID, doc.getSelectedRevID());
+                assertEquals(i, doc.getSelectedSequence());
+                assertNull(doc.getSelectedBodyTest());
+                // Doc was loaded without its body, but it should load on demand:
+                assertTrue(Arrays.equals(kBody.getBytes(), doc.getSelectedBody()));
+                i++;
+            } finally {
+                doc.free();
+            }
         }
         assertEquals(100, i);
 
@@ -343,25 +351,31 @@ public class C4DatabaseTest extends C4TestCase {
         assertNotNull(itr);
         i = 7;
         while ((doc = itr.nextDocument()) != null) {
-            String docID = String.format("doc-%03d", i);
-            assertEquals(docID, doc.getDocID());
-            doc.free();
-            i++;
+            try {
+                String docID = String.format("doc-%03d", i);
+                assertEquals(docID, doc.getDocID());
+                i++;
+            } finally {
+                doc.free();
+            }
         }
         assertEquals(91, i);
 
         // Some docs, by ID:
-        String[] docIDs = {"doc-042","doc-007","bogus","doc-001"};
+        String[] docIDs = {"doc-042", "doc-007", "bogus", "doc-001"};
         iteratorFlags = IteratorFlags.kDefault;
         iteratorFlags |= IteratorFlags.kIncludeDeleted;
         itr = db.iterator(docIDs, iteratorFlags);
         assertNotNull(itr);
         i = 0;
         while ((doc = itr.nextDocument()) != null) {
-            assertEquals(docIDs[i], doc.getDocID());
-            assertEquals(i != 2, doc.getSelectedSequence() != 0);
-            doc.free();
-            i++;
+            try {
+                assertEquals(docIDs[i], doc.getDocID());
+                assertEquals(i != 2, doc.getSelectedSequence() != 0);
+                i++;
+            } finally {
+                doc.free();
+            }
         }
         assertEquals(4, i);
     }
@@ -375,14 +389,17 @@ public class C4DatabaseTest extends C4TestCase {
         Document doc;
         int i = 4;
         while ((doc = itr.nextDocument()) != null) {
-            String docID;
-            if(i == 6)
-                docID = "doc-005DEL";
-            else
-                docID = String.format("doc-%03d", i>=6?i-1:i);
-            assertEquals(docID, doc.getDocID());
-            doc.free();
-            i++;
+            try {
+                String docID;
+                if (i == 6)
+                    docID = "doc-005DEL";
+                else
+                    docID = String.format("doc-%03d", i >= 6 ? i - 1 : i);
+                assertEquals(docID, doc.getDocID());
+                i++;
+            } finally {
+                doc.free();
+            }
         }
         assertEquals(9, i);
     }
@@ -390,24 +407,25 @@ public class C4DatabaseTest extends C4TestCase {
     public void testAllDocsInfo() throws ForestException {
         setupAllDocs();
 
-        DocumentIterator itr = null;
-
         // No start or end ID:
         int iteratorFlags = IteratorFlags.kDefault;
-        itr = db.iterator(null, null, 0, iteratorFlags);
+        DocumentIterator itr = db.iterator(null, null, 0, iteratorFlags);
         assertNotNull(itr);
-        Document doc = null;
+        Document doc;
         int i = 1;
         while ((doc = itr.nextDocument()) != null) {
-            String docID = String.format("doc-%03d", i);
-            assertEquals(docID, doc.getDocID());
-            assertEquals(kRevID, doc.getRevID());
-            assertEquals(kRevID, doc.getSelectedRevID());
-            assertEquals(i, doc.getSequence());
-            assertEquals(i, doc.getSelectedSequence());
-            assertEquals(C4DocumentFlags.kExists, doc.getFlags());
-            doc.free();
-            i++;
+            try {
+                String docID = String.format("doc-%03d", i);
+                assertEquals(docID, doc.getDocID());
+                assertEquals(kRevID, doc.getRevID());
+                assertEquals(kRevID, doc.getSelectedRevID());
+                assertEquals(i, doc.getSequence());
+                assertEquals(i, doc.getSelectedSequence());
+                assertEquals(C4DocumentFlags.kExists, doc.getFlags());
+                i++;
+            } finally {
+                doc.free();
+            }
         }
         assertEquals(100, i);
     }
@@ -420,17 +438,20 @@ public class C4DatabaseTest extends C4TestCase {
 
         // Since start:
         int iteratorFlags = IteratorFlags.kDefault;
-        iteratorFlags  &= ~IteratorFlags.kIncludeBodies;
+        iteratorFlags &= ~IteratorFlags.kIncludeBodies;
         DocumentIterator itr = new DocumentIterator(db._handle, 0, iteratorFlags);
         assertNotNull(itr);
         Document doc;
         long seq = 1;
         while ((doc = itr.nextDocument()) != null) {
-            String docID = String.format("doc-%03d", seq);
-            assertEquals(docID, doc.getDocID());
-            assertEquals(seq, doc.getSelectedSequence());
-            doc.free();
-            seq++;
+            try {
+                String docID = String.format("doc-%03d", seq);
+                assertEquals(docID, doc.getDocID());
+                assertEquals(seq, doc.getSelectedSequence());
+                seq++;
+            } finally {
+                doc.free();
+            }
         }
         assertEquals(100L, seq);
 
@@ -439,11 +460,14 @@ public class C4DatabaseTest extends C4TestCase {
         assertNotNull(itr);
         seq = 7;
         while ((doc = itr.nextDocument()) != null) {
-            String docID = String.format("doc-%03d", seq);
-            assertEquals(docID, doc.getDocID());
-            assertEquals(seq, doc.getSelectedSequence());
-            doc.free();
-            seq++;
+            try {
+                String docID = String.format("doc-%03d", seq);
+                assertEquals(docID, doc.getDocID());
+                assertEquals(seq, doc.getSelectedSequence());
+                seq++;
+            } finally {
+                doc.free();
+            }
         }
         assertEquals(100L, seq);
     }

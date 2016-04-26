@@ -1,12 +1,12 @@
 /**
  * Created by Hideki Itakura on 10/20/2015.
  * Copyright (c) 2015 Couchbase, Inc All rights reserved.
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
  * except in compliance with the License. You may obtain a copy of the License at
- *
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software distributed under the
  * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
  * either express or implied. See the License for the specific language governing permissions
@@ -36,11 +36,8 @@ public class C4ViewTest extends C4TestCase {
                 fail();
             }
         }
-
-        view = new View(db, indexFile.getPath(), Database.Create, 0, null,"myview", "1");
+        view = new View(db, indexFile.getPath(), Database.Create, 0, null, "myview", "1");
         assertNotNull(view);
-
-
     }
 
     @Override
@@ -49,7 +46,6 @@ public class C4ViewTest extends C4TestCase {
             view.delete();
             view = null;
         }
-
         super.tearDown();
     }
 
@@ -64,15 +60,19 @@ public class C4ViewTest extends C4TestCase {
             String docID = String.format("doc-%03d", i);
             createRev(docID, kRevID, kBody.getBytes());
         }
+        updateIndex();
+    }
 
+    protected void updateIndex() throws ForestException {
         boolean commit = false;
         View[] views = {view};
         indexer = new Indexer(views);
         try {
             DocumentIterator itr = indexer.iterateDocuments();
-            try {
-                Document doc;
-                while ((doc = itr.nextDocument()) != null) {
+            Document doc;
+            while ((doc = itr.nextDocument()) != null) {
+                try {
+                    // Index 'doc':
                     Object[] keys = new Object[2];
                     byte[][] values = new byte[2][];
                     keys[0] = doc.getDocID();
@@ -80,11 +80,12 @@ public class C4ViewTest extends C4TestCase {
                     values[0] = "1234".getBytes();
                     values[1] = "1234".getBytes();
                     indexer.emit(doc, 0, keys, values);
+                } finally {
+                    doc.free();
                 }
-            }finally {
             }
             commit = true;
-        }finally {
+        } finally {
             indexer.endIndex(commit);
         }
     }
@@ -103,23 +104,21 @@ public class C4ViewTest extends C4TestCase {
         QueryIterator e = view.query();
         assertNotNull(e);
 
-        try{
-            int i = 0;
-            while(e.next()){
-                ++i;
-                String buff;
-                if(i <= 100)
-                    buff = String.format("%d", i);
-                else
-                    buff = String.format("\"doc-%03d\"", i - 100);
-                assertEquals(buff, new String(e.keyJSON()));
-                assertTrue(Arrays.equals("1234".getBytes(), e.valueJSON()));
+        int i = 0;
+        while (e.next()) {
+            ++i;
+            String buff;
+            if (i <= 100) {
+                buff = String.format("%d", i);
+                assertEquals(i, e.sequence());
+            } else {
+                buff = String.format("\"doc-%03d\"", i - 100);
+                assertEquals(i - 100, e.sequence());
             }
-
-            assertEquals(200, i);
+            assertEquals(buff, new String(e.keyJSON()));
+            assertTrue(Arrays.equals("1234".getBytes(), e.valueJSON()));
         }
-        finally {
-        }
+        assertEquals(200, i);
     }
 
     public void testIndexVersion() throws ForestException {
@@ -128,7 +127,7 @@ public class C4ViewTest extends C4TestCase {
         // Reopen view with same version string:
         view.close();
         view = null;
-        view = new View(db, indexFile.getPath(), Database.Create, 0, null,"myview", "1");
+        view = new View(db, indexFile.getPath(), Database.Create, 0, null, "myview", "1");
         assertNotNull(view);
 
         assertEquals(200, view.getTotalRows());
@@ -138,12 +137,56 @@ public class C4ViewTest extends C4TestCase {
         // Reopen view with different version string:
         view.close();
         view = null;
-        view = new View(db, indexFile.getPath(), Database.Create, 0, null,"myview", "2");
+        view = new View(db, indexFile.getPath(), Database.Create, 0, null, "myview", "2");
         assertNotNull(view);
 
         assertEquals(0, view.getTotalRows());
         assertEquals(0, view.getLastSequenceIndexed());
         assertEquals(0, view.getLastSequenceChangedAt());
+    }
+
+    public void testDocPurge() throws ForestException {
+        testDocPurge(false);
+    }
+
+    public void testDocPurgeWithCompact() throws ForestException {
+        testDocPurge(true);
+    }
+
+    protected void testDocPurge(boolean compactAfterPurge) throws ForestException {
+        createIndex();
+
+        long lastIndexed = view.getLastSequenceIndexed();
+        long lastSeq = db.getLastSequence();
+        assertEquals(lastIndexed, lastSeq);
+
+        boolean commit = false;
+        db.beginTransaction();
+        try {
+            db.purgeDoc("doc-023");
+            commit = true;
+        } finally {
+            db.endTransaction(commit);
+        }
+
+        if (compactAfterPurge)
+            db.compact();
+
+        // ForestDB assigns sequences to deletions, so the purge bumped the db's sequence,
+        // invalidating the view index:
+        lastIndexed = view.getLastSequenceIndexed();
+        lastSeq = db.getLastSequence();
+        assertTrue(lastIndexed < lastSeq);
+
+        updateIndex();
+
+        // Verify that the purged doc is no longer in the index:
+        QueryIterator itr = view.query();
+        assertNotNull(itr);
+        int i = 0;
+        while (itr.next())
+            ++i;
+        assertEquals(198, i); // 2 rows of doc-023 are gone
     }
 
     /**
@@ -164,7 +207,7 @@ public class C4ViewTest extends C4TestCase {
                 int i = 1;
                 Document doc;
                 while ((doc = itr.nextDocument()) != null) {
-                    if(i%2 == odd) {
+                    if (i % 2 == odd) {
                         Object[] keys = new Object[2];
                         byte[][] values = new byte[2][];
                         keys[0] = doc.getDocID();
@@ -172,15 +215,15 @@ public class C4ViewTest extends C4TestCase {
                         values[0] = "1234".getBytes();
                         values[1] = "1234".getBytes();
                         indexer.emit(doc, 0, keys, values);
-                    }else{
+                    } else {
                         indexer.emit(doc, 0, new Object[0], null);
                     }
                     i++;
                 }
-            }finally {
+            } finally {
             }
             commit = true;
-        }finally {
+        } finally {
             indexer.endIndex(commit);
         }
     }
