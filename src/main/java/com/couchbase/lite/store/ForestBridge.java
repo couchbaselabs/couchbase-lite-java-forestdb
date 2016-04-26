@@ -1,12 +1,12 @@
 /**
  * Created by Hideki Itakura on 10/20/2015.
  * Copyright (c) 2015 Couchbase, Inc All rights reserved.
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
  * except in compliance with the License. You may obtain a copy of the License at
- *
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software distributed under the
  * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
  * either express or implied. See the License for the specific language governing permissions
@@ -15,14 +15,20 @@
 
 package com.couchbase.lite.store;
 
+import com.couchbase.cbforest.Constants;
 import com.couchbase.cbforest.Document;
 import com.couchbase.cbforest.ForestException;
+import com.couchbase.lite.Manager;
+import com.couchbase.lite.Status;
 import com.couchbase.lite.internal.RevisionInternal;
+import com.couchbase.lite.util.Log;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
-public class ForestBridge {
+public class ForestBridge implements Constants {
     public final static String TAG = ForestBridge.class.getSimpleName();
 
     /**
@@ -31,25 +37,20 @@ public class ForestBridge {
      * revID: (NSString*)revID
      * withBody: (BOOL)withBody
      */
-    public static RevisionInternal revisionObjectFromForestDoc(
+    public static RevisionInternal revisionObject(
             Document doc,
+            String docID,
             String revID,
-            boolean withBody)
-            throws ForestException {
-        RevisionInternal rev;
-        String docID = doc.getDocID();
-        if (revID != null) {
-            if (!doc.selectRevID(revID, false))
-                return null;
-        } else {
-            if (!doc.selectCurrentRev())
-                return null;
+            boolean withBody) {
+        if (revID == null)
             revID = doc.getSelectedRevID();
-        }
-        rev = new RevisionInternal(docID, revID, doc.selectedRevDeleted());
+        RevisionInternal rev = new RevisionInternal(docID, revID, doc.selectedRevDeleted());
         rev.setSequence(doc.getSelectedSequence());
-        if (withBody && !loadBodyOfRevisionObject(rev, doc))
-            return null;
+        if (withBody) {
+            Status status = loadBodyOfRevisionObject(rev, doc);
+            if (status.isError())
+                return null;
+        }
         return rev;
     }
 
@@ -58,52 +59,106 @@ public class ForestBridge {
      * + (BOOL) loadBodyOfRevisionObject: (CBL_MutableRevision*)rev
      * doc: (VersionedDocument&)doc
      */
-    public static boolean loadBodyOfRevisionObject(
-            RevisionInternal rev,
-            Document doc)
-            throws ForestException {
-        if (!doc.selectRevID(rev.getRevID(), true))
-            return false;
-        byte[] json = doc.getSelectedBody();
-        if (json == null)
-            return false;
-        rev.setSequence(doc.getSelectedSequence());
-        rev.setJSON(json);
-        return true;
+    public static Status loadBodyOfRevisionObject(RevisionInternal rev, Document doc) {
+        try {
+            if (!doc.selectRevID(rev.getRevID(), true))
+                return new Status(Status.NOT_FOUND);
+            byte[] json = doc.getSelectedBody();
+            if (json != null)
+                rev.setJSON(json);
+            rev.setSequence(doc.getSelectedSequence());
+            return new Status(Status.OK);
+        } catch (ForestException ex) {
+            return err2status(ex);
+        }
     }
 
     /**
      * in CBLForestBridge.m
-     * + (NSArray*) getCurrentRevisionIDs: (VersionedDocument&)doc
-     *                     includeDeleted: (BOOL)includeDeleted
+     * + (BOOL) loadBodyOfRevisionObject: (CBL_MutableRevision*)rev
+     * doc: (VersionedDocument&)doc
      */
-    public static List<String> getCurrentRevisionIDs(Document doc, boolean includeDeleted)
-            throws ForestException {
+    public static Map<String, Object> bodyOfSelectedRevision(Document doc) {
+        byte[] body;
+        try {
+            body = doc.getSelectedBody();
+        } catch (ForestException e) {
+            return null;
+        }
+        Map<String, Object> properties = null;
+        if (body != null && body.length > 0) {
+            try {
+                properties = Manager.getObjectMapper().readValue(body, Map.class);
+            } catch (IOException e) {
+                Log.w(TAG, "Failed to parse body: [%s]", new String(body));
+            }
+        }
+        return properties;
+    }
+
+
+    /**
+     * Not include deleted leaf node
+     */
+    public static List<String> getCurrentRevisionIDs(Document doc) throws ForestException {
         List<String> currentRevIDs = new ArrayList<String>();
         do {
-            if(includeDeleted || !doc.selectedRevDeleted())
-                currentRevIDs.add(doc.getSelectedRevID());
-        } while (doc.selectNextLeaf(includeDeleted, false));
+            currentRevIDs.add(doc.getSelectedRevID());
+        } while (doc.selectNextLeaf(false, false));
         return currentRevIDs;
     }
 
     /**
      * in CBLForestBridge.m
-     * + (NSArray*) getRevisionHistory: (const Revision*)revNode
-     *
-     * Note: Unable to downcast from RevTree to VersionedDocument
-     * Instead of downcast, add docID parameter
+     * CBLStatus err2status(C4Error c4err)
      */
-    public static List<RevisionInternal> getRevisionHistory(Document doc) {
-        List<RevisionInternal> history = new ArrayList<RevisionInternal>();
-        do{
-            RevisionInternal rev = new RevisionInternal(
-                    doc.getDocID(),
-                    doc.getSelectedRevID(),
-                    doc.selectedRevDeleted());
-            rev.setMissing(doc.hasRevisionBody());
-            history.add(rev);
-        }while(doc.selectParentRev());
-        return history;
+    public static Status err2status(ForestException ex) {
+        return new Status(_err2status(ex));
+    }
+
+    /**
+     * in CBLForestBridge.m
+     * CBLStatus err2status(C4Error c4err)
+     */
+    public static int _err2status(ForestException ex) {
+        if (ex == null || ex.code == 0)
+            return Status.OK;
+        switch (ex.domain) {
+            case C4ErrorDomain.HTTPDomain:
+                return ex.code;
+            case C4ErrorDomain.POSIXDomain:
+                break;
+            case C4ErrorDomain.ForestDBDomain:
+                switch (ex.code) {
+                    case FDBErrors.FDB_RESULT_SUCCESS:
+                        return Status.OK;
+                    case FDBErrors.FDB_RESULT_KEY_NOT_FOUND:
+                    case FDBErrors.FDB_RESULT_NO_SUCH_FILE:
+                        return Status.NOT_FOUND;
+                    case FDBErrors.FDB_RESULT_RONLY_VIOLATION:
+                        return Status.FORBIDDEN;
+                    case FDBErrors.FDB_RESULT_NO_DB_HEADERS:
+                    case FDBErrors.FDB_RESULT_CRYPTO_ERROR:
+                        return Status.UNAUTHORIZED;
+                    case FDBErrors.FDB_RESULT_CHECKSUM_ERROR:
+                    case FDBErrors.FDB_RESULT_FILE_CORRUPTION:
+                        return Status.CORRUPT_ERROR;
+                }
+                break;
+            case C4ErrorDomain.C4Domain:
+                switch (ex.code) {
+                    case C4DomainErrorCode.kC4ErrorCorruptRevisionData:
+                    case C4DomainErrorCode.kC4ErrorCorruptIndexData:
+                        return Status.CORRUPT_ERROR;
+                    case C4DomainErrorCode.kC4ErrorBadRevisionID:
+                        return Status.BAD_ID;
+                    case C4DomainErrorCode.kC4ErrorAssertionFailed:
+                        break;
+                    default:
+                        break;
+                }
+                break;
+        }
+        return Status.DB_ERROR;
     }
 }
