@@ -30,6 +30,7 @@ import com.couchbase.lite.Query;
 import com.couchbase.lite.QueryOptions;
 import com.couchbase.lite.QueryRow;
 import com.couchbase.lite.ReplicationFilter;
+import com.couchbase.lite.Revision;
 import com.couchbase.lite.RevisionList;
 import com.couchbase.lite.Status;
 import com.couchbase.lite.TransactionalTask;
@@ -42,12 +43,16 @@ import com.couchbase.lite.support.action.ActionException;
 import com.couchbase.lite.support.security.SymmetricKey;
 import com.couchbase.lite.util.Log;
 import com.couchbase.lite.util.NativeLibUtils;
+import com.couchbase.lite.util.SQLiteUtils;
+import com.couchbase.lite.util.TextUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -513,6 +518,41 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
         if (doc != null)
             doc.free();
         return numRevisionsRemoved;
+    }
+
+    @Override
+    public String findCommonAncestorOf(RevisionInternal rev, List<String> revIDs) {
+        long generation = Revision.generationFromRevID(rev.getRevID());
+        if (generation <= 1 || (revIDs == null || revIDs.size() == 0))
+            return null;
+        Collections.sort(revIDs, new Comparator<String>() {
+            @Override
+            public int compare(String id1, String id2) {
+                // descending order of generation
+                return RevisionInternal.CBLCompareRevIDs(id2, id1);
+            }
+        });
+        Document doc = getDocument(rev.getDocID());
+        if (doc == null)
+            return null;
+        String commonAncestor = null;
+        try {
+            for (String possibleRevID : revIDs) {
+                if (Revision.generationFromRevID(possibleRevID) <= generation) {
+                    try {
+                        if (doc.selectRevID(possibleRevID, false))
+                            commonAncestor = possibleRevID;
+                    } catch (ForestException e) {
+                        Log.i(TAG, "Error in Document.selectRevID() revID=%s", e, possibleRevID);
+                    }
+                    if (commonAncestor != null)
+                        break;
+                }
+            }
+        } finally {
+            doc.free();
+        }
+        return commonAncestor;
     }
 
     @Override
