@@ -43,23 +43,20 @@ import com.couchbase.lite.util.Log;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.math.BigInteger;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ForestDBViewStore implements ViewStore, QueryRowStore, Constants {
     public static String TAG = Log.TAG_VIEW;
 
     public static final String kViewIndexPathExtension = "viewindex";
-    // Size of ForestDB buffer cache allocated for a database
-    private static final BigInteger kDBBufferCacheSize = new BigInteger("8388608");
-
-    // ForestDB Write-Ahead Log size (# of records)
-    private static final BigInteger kDBWALThreshold = new BigInteger("1024");
+    private static final Pattern kViewNameRegex = Pattern.compile("^(.*)\\.viewindex(.\\d+)?$");
 
     // Close the index db after it's inactive this many seconds
     private static final Float kCloseDelay = 60.0f;
@@ -548,7 +545,7 @@ public class ForestDBViewStore implements ViewStore, QueryRowStore, Constants {
 
     // Opens the index. You MUST call this (or a method that calls it) before dereferencing _view.
     private View openIndex() throws ForestException {
-        return openIndex(Database.Create);
+        return openIndex(0);
     }
 
     private View openIndex(int flags) throws ForestException {
@@ -562,6 +559,10 @@ public class ForestDBViewStore implements ViewStore, QueryRowStore, Constants {
      */
     private View openIndex(int flags, boolean dryRun) throws ForestException {
         if (_view == null) {
+            // Flags:
+            if(_dbStore.getAutoCompact())
+                flags |= Database.AutoCompact;
+
             // Encryption:
             SymmetricKey encryptionKey = _dbStore.getEncryptionKey();
             int enAlgorithm = Database.NoEncryption;
@@ -706,7 +707,8 @@ public class ForestDBViewStore implements ViewStore, QueryRowStore, Constants {
     }
 
     protected static String fileNameToViewName(String fileName) throws CouchbaseLiteException {
-        if (!fileName.endsWith(kViewIndexPathExtension) || fileName.startsWith("."))
+        Matcher m = kViewNameRegex.matcher(fileName);
+        if(!m.matches())
             throw new CouchbaseLiteException(Status.BAD_PARAM);
         String viewName = fileName.substring(0, fileName.indexOf("."));
         return unescapeViewName(viewName);
