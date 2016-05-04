@@ -79,15 +79,6 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
 
     public static String kDBFilename = "db.forest";
 
-    // Size of ForestDB buffer cache allocated for a database
-    private static final BigInteger kDBBufferCacheSize = new BigInteger("8388608");
-
-    // ForestDB Write-Ahead Log size (# of records)
-    private static final BigInteger kDBWALThreshold = new BigInteger("1024");
-
-    // How often ForestDB should check whether databases need auto-compaction
-    private static final BigInteger kAutoCompactInterval = new BigInteger("300");
-
     private static final int kDefaultMaxRevTreeDepth = 20;
 
     protected String directory;
@@ -151,7 +142,9 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
     @Override
     public void open() throws CouchbaseLiteException {
         // Flag:
-        int flags = (readOnly ? Database.ReadOnly : Database.Create) | Database.AutoCompact;
+        int flags = readOnly ? Database.ReadOnly : Database.Create;
+        if(autoCompact)
+            flags |= Database.AutoCompact;
 
         // Encryption:
         int enAlgorithm = Database.NoEncryption;
@@ -204,6 +197,16 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
     @Override
     public int getMaxRevTreeDepth() {
         return maxRevTreeDepth;
+    }
+
+    @Override
+    public void setAutoCompact(boolean value) {
+        autoCompact = value;
+    }
+
+    @Override
+    public boolean getAutoCompact() {
+        return autoCompact;
     }
 
     ///////////////////////////////////////////////////////////////////////////
