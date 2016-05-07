@@ -595,7 +595,7 @@ public class ForestDBViewStore implements ViewStore, QueryRowStore, Constants {
                 _view.close();
                 _view = null;
             } catch (ForestException e) {
-                Log.e(TAG, "Failed to close Index: " + _view);
+                Log.w(TAG, "Failed to close Index: " + _view);
             }
     }
 
