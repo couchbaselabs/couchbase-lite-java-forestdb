@@ -210,7 +210,14 @@ model {
                         "-DWITH_STEMMER_english",
                         "-DDOC_COMP",
                         "-D_DOC_COMP",
-                        "-fPIC"
+                        "-fPIC",
+                        "-I" + VS_2015_INCLUDE_DIR
+                    if(targetPlatform.architecture.name == "x86") {
+                        linker.args "/LIBPATH:" + VS_2015_LIB_DIR + "/x86"
+                    }
+                    else if(targetPlatform.architecture.name == "x86_64" || targetPlatform.architecture.name == "amd64") {
+                        linker.args "/LIBPATH:" + VS_2015_LIB_DIR + "/x64"
+                    }
                 }
                 else{
                     // clang or gcc
@@ -435,7 +442,14 @@ model {
                 } else if (targetPlatform.operatingSystem.windows) {
                     cppCompiler.args "-I${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
                     cppCompiler.args "-I${org.gradle.internal.jvm.Jvm.current().javaHome}/include/win32"
+                    cppCompiler.args "-I" + VS_2015_INCLUDE_DIR
                     linker.args 'Ws2_32.lib', 'Advapi32.lib', 'Gdi32.lib', 'User32.lib'
+                    if(targetPlatform.architecture.name == "x86"){
+                        linker.args "/LIBPATH:" + VS_2015_LIB_DIR + "/x86"
+                    }
+                    else /*if(targetPlatform.architecture.name == "x86-64" || targetPlatform.architecture.name == "amd64")*/ {
+                        linker.args "/LIBPATH:" + VS_2015_LIB_DIR + "/x64"
+                    }
                 }
             }
         }
