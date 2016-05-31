@@ -401,7 +401,7 @@ public class ForestDBViewStore implements ViewStore, QueryRowStore, Constants {
                 // Create a CBLQueryRow:
                 QueryRow row = new QueryRow(docID, sequence,
                         key, value,
-                        docRevision, this);
+                        docRevision);
                 if (postFilter != null) {
                     if (!postFilter.apply(row)) {
                         continue;
@@ -474,7 +474,7 @@ public class ForestDBViewStore implements ViewStore, QueryRowStore, Constants {
                         Object key = groupKey(lastKeys[0], groupLevel);
                         Object reduced = (reduce != null) ?
                                 reduce.reduce(keysToReduce, valuesToReduce, false) : null;
-                        QueryRow row = new QueryRow(null, 0, key, reduced, null, that);
+                        QueryRow row = new QueryRow(null, 0, key, reduced, null);
                         if (postFilter == null || postFilter.apply(row))
                             rows.add(row);
                         keysToReduce.clear();
@@ -500,7 +500,7 @@ public class ForestDBViewStore implements ViewStore, QueryRowStore, Constants {
             Object reduced = (reduce != null) ?
                     reduce.reduce(keysToReduce, valuesToReduce, false) : null;
             Log.v(TAG, String.format("Query %s: Reduced to key=%s, value=%s", name, key, reduced));
-            QueryRow row = new QueryRow(null, 0, key, reduced, null, that);
+            QueryRow row = new QueryRow(null, 0, key, reduced, null);
             if (postFilter == null || postFilter.apply(row))
                 rows.add(row);
         }

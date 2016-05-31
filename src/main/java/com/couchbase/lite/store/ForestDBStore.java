@@ -43,12 +43,9 @@ import com.couchbase.lite.support.action.ActionException;
 import com.couchbase.lite.support.security.SymmetricKey;
 import com.couchbase.lite.util.Log;
 import com.couchbase.lite.util.NativeLibUtils;
-import com.couchbase.lite.util.SQLiteUtils;
-import com.couchbase.lite.util.TextUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.math.BigInteger;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -662,7 +659,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                     String docID = doc.getDocID();
                     if (!doc.exists()) {
                         Log.v(TAG, "AllDocs: No such row with key=\"%s\"", docID);
-                        QueryRow row = new QueryRow(null, 0, docID, null, null, null);
+                        QueryRow row = new QueryRow(null, 0, docID, null, null);
                         rows.add(row);
                         continue;
                     }
@@ -710,8 +707,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                             sequence,
                             docID,
                             value,
-                            docRevision,
-                            null);
+                            docRevision);
                     if (filter != null && !filter.apply(row)) {
                         Log.v(TAG, "   ... on 2nd thought, filter predicate skipped that row");
                         continue;
