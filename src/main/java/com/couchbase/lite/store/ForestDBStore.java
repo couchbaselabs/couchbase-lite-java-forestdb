@@ -941,7 +941,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
         if (json == null)
             throw new CouchbaseLiteException(Status.BAD_JSON);
 
-        final RevisionInternal rev = inRev;
+        final RevisionInternal rev = inRev.copy();
         final List<String> history = inHistory;
         final URL source = inSource;
 
