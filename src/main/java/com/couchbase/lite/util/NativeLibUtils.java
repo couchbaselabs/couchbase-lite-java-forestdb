@@ -19,6 +19,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 public class NativeLibUtils {
@@ -54,7 +55,7 @@ public class NativeLibUtils {
     }
 
     private static String _getConfiguredLibraryPath(String libraryName) {
-        String key = String.format("com.couchbase.lite.lib.%s.path", libraryName);
+        String key = String.format(Locale.ENGLISH, "com.couchbase.lite.lib.%s.path", libraryName);
 
         return System.getProperty(key);
     }
