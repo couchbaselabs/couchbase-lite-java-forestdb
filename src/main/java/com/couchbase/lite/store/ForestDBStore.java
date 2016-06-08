@@ -54,6 +54,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -109,7 +110,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
         File dir = new File(directory);
         if (!dir.exists() || !dir.isDirectory()) {
             throw new IllegalArgumentException(
-                    String.format("directory '%s' does not exist or not directory", directory));
+                    String.format(Locale.ENGLISH, "directory '%s' does not exist or not directory", directory));
         }
         this.forestPath = new File(directory, kDBFilename).getPath();
         this.manager = manager;
@@ -1157,7 +1158,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                                 return new Status(Status.CONFLICT);
                         }
                     }
-                    String newRevID = String.format("%d-local", generation + 1);
+                    String newRevID = String.format(Locale.ENGLISH, "%d-local", generation + 1);
                     try {
                         forest.rawPut("_local", docID, newRevID.getBytes(), json);
                     } catch (ForestException e) {

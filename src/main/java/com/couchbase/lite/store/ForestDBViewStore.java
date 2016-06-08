@@ -48,6 +48,7 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -499,7 +500,7 @@ public class ForestDBViewStore implements ViewStore, QueryRowStore, Constants {
             Object key = group ? groupKey(lastKeys[0], groupLevel) : null;
             Object reduced = (reduce != null) ?
                     reduce.reduce(keysToReduce, valuesToReduce, false) : null;
-            Log.v(TAG, String.format("Query %s: Reduced to key=%s, value=%s", name, key, reduced));
+            Log.v(TAG, String.format(Locale.ENGLISH, "Query %s: Reduced to key=%s, value=%s", name, key, reduced));
             QueryRow row = new QueryRow(null, 0, key, reduced, null);
             if (postFilter == null || postFilter.apply(row))
                 rows.add(row);
