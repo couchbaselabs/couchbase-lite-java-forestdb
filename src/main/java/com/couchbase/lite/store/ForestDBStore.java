@@ -1067,6 +1067,31 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
         return result;
     }
 
+    ///////////////////////////////////////////////////////////////////////////
+    // EXPIRATION:
+    ///////////////////////////////////////////////////////////////////////////
+
+    @Override
+    public long expirationOfDocument(String docID) {
+        return 0;
+    }
+
+    @Override
+    public boolean setExpirationOfDocument(long timestamp, String docID) {
+        return false;
+    }
+
+    @Override
+    public long nextDocumentExpiry() {
+        return 0;
+    }
+
+    @Override
+    public int purgeExpiredDocuments() {
+        return 0;
+    }
+
+
     @Override
     public ViewStore getViewStorage(String name, boolean create) throws CouchbaseLiteException {
         return new ForestDBViewStore(this, name, create);
