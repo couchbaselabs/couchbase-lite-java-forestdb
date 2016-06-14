@@ -50,6 +50,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -58,6 +59,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ForestDBStore implements Store, EncryptableStore, Constants {
 
@@ -337,7 +339,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
         try {
             doc = forest.getDocument(docID, true);
         } catch (ForestException e) {
-            Log.w(TAG, "ForestDB Error: getDocument(docID, true) docID=[%s] error=[%s]",
+            Log.d(TAG, "ForestDB Warning: getDocument(docID, true) docID=[%s] error=[%s]",
                     docID, e.toString());
             throw new CouchbaseLiteException(ForestBridge.err2status(e));
         }
@@ -1019,7 +1021,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                     if (revIDs == null) {
                         return new Status(Status.BAD_PARAM);
                     } else if (revIDs.size() == 0) {
-                        ; // nothing to do.
+                        // nothing to do.
                     } else if (revIDs.contains("*")) {
                         // Delete all revisions if magic "*" revision ID is given:
                         try {
@@ -1027,6 +1029,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                         } catch (ForestException e) {
                             return ForestBridge.err2status(e);
                         }
+                        notifyPurgedDocument(docID);
                         revsPurged.add("*");
                         Log.v(TAG, "Purged doc '%s'", docID);
                     } else {
@@ -1066,6 +1069,74 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
         });
         return result;
     }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // EXPIRATION:
+    ///////////////////////////////////////////////////////////////////////////
+
+    /**
+     * @return Java Time
+     */
+    @Override
+    public long expirationOfDocument(String docID) {
+        try {
+            return forest.expirationOfDoc(docID) * 1000L;
+        } catch (ForestException e) {
+            Log.e(TAG, "Error: expirationOfDoc() docID=%s", e, docID);
+            return 0;
+        }
+    }
+
+    @Override
+    public boolean setExpirationOfDocument(long timestamp, String docID) {
+        try {
+            forest.setExpiration(docID, timestamp);
+            return true;
+        } catch (ForestException e) {
+            Log.e(TAG, "Error: setExpiration() docID=%s", e, docID);
+            return false;
+        }
+    }
+
+    /**
+     * @return Java Time
+     */
+    @Override
+    public long nextDocumentExpiry() {
+        long expiry = 0;
+        try {
+            expiry = forest.nextDocExpiration() * 1000L;
+        } catch (ForestException e) {
+            Log.e(TAG, "Error: nextDocExpiration()", e);
+        }
+        return expiry;
+    }
+
+    @Override
+    public int purgeExpiredDocuments() {
+        final AtomicInteger purged = new AtomicInteger();
+        runInTransaction(new TransactionalTask() {
+            @Override
+            public boolean run() {
+                try {
+                    String[] docIDs = forest.purgeExpiredDocuments();
+                    for (String docID : docIDs)
+                        notifyPurgedDocument(docID);
+                    purged.set(docIDs.length);
+                    return true;
+                } catch (ForestException e) {
+                    Log.e(TAG, "Error: purgeExpiredDocuments()", e);
+                    return false;
+                }
+            }
+        });
+        return purged.get();
+    }
+
+    private void notifyPurgedDocument(String docID) {
+        delegate.databaseStorageChanged(new DocumentChange(docID));
+    }
+
 
     @Override
     public ViewStore getViewStorage(String name, boolean create) throws CouchbaseLiteException {
