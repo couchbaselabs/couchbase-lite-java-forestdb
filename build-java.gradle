@@ -319,6 +319,7 @@ model {
                                 "vendor/cbforest/C/c4Database.cc",
                                 "vendor/cbforest/C/c4DocEnumerator.cc",
                                 "vendor/cbforest/C/c4Document.cc",
+                                "vendor/cbforest/C/c4ExpiryEnumerator.cc",
                                 "vendor/cbforest/C/c4Key.cc",
                                 "vendor/cbforest/C/c4View.cc",
                                 "vendor/cbforest/Java/jni/native_database.cc",
