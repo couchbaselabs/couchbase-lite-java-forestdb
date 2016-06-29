@@ -417,9 +417,9 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                         doc, rev.getDocID(), null, false);
                 if (ancestor == null)
                     break;
-                ancestor.setMissing(doc.hasRevisionBody());
+                ancestor.setMissing(!doc.hasRevisionBody());
                 history.add(ancestor);
-                // TODO
+                // TODO: implement once ancestorRevIDs param is given.
                 //if(ancestorRevIDs!=null&&ancestorRevIDs.contains(ancestor.getRevID()))
                 //    break;
             } while (doc.selectParentRev());
