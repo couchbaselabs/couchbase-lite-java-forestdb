@@ -297,7 +297,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                 commit = task.run();
             } catch (Exception e) {
                 commit = false;
-                Log.e(TAG, e.toString(), e);
+                Log.e(TAG, "[ForestDBStore.runInTransaction()] Error in TransactionalTask", e);
                 throw new RuntimeException(e);
             } finally {
                 endTransaction(commit);
