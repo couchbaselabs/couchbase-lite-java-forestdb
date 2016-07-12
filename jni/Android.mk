@@ -51,6 +51,10 @@ LOCAL_CPPFLAGS	:= 	-I$(FORESTDB_PATH)/include/ \
 					-I$(CBFOREST_JNI_PATH)/ \
 					-I$(FORESTDB_STORE_PATH)/
 
+ifeq ($(TARGET_ARCH),mips)
+    LOCAL_CFLAGS +=	-D__mips32__
+endif
+
 LOCAL_CPPFLAGS	+=	-std=c++11
 LOCAL_CPPFLAGS	+=	-fexceptions
 LOCAL_CPPFLAGS	+=	-fpermissive
@@ -77,7 +81,7 @@ PCH_FILE  := $(CBFOREST_PATH)/CBForest-Prefix.pch
 LOCAL_CPPFLAGS += -include $(PCH_FILE)
 
 LOCAL_LDLIBS    := -llog
-#LOCAL_LDLIBS    += -latomic  # for armeabi
+LOCAL_LDLIBS    += -latomic
 
 LOCAL_SRC_FILES :=	$(SQLITE3_PATH)/fts3_unicode2.c \
 					$(SQLITE3_PATH)/fts3_unicodesn.c \
@@ -126,6 +130,7 @@ LOCAL_SRC_FILES :=	$(SQLITE3_PATH)/fts3_unicode2.c \
 					$(FORESTDB_PATH)/src/avltree.cc \
 					$(FORESTDB_PATH)/src/bgflusher.cc \
 					$(FORESTDB_PATH)/src/blockcache.cc \
+					$(FORESTDB_PATH)/src/breakpad_dummy.cc \
 					$(FORESTDB_PATH)/src/btree.cc \
 					$(FORESTDB_PATH)/src/btree_fast_str_kv.cc \
 					$(FORESTDB_PATH)/src/btree_kv.cc \
@@ -150,8 +155,8 @@ LOCAL_SRC_FILES :=	$(SQLITE3_PATH)/fts3_unicode2.c \
 					$(FORESTDB_PATH)/src/iterator.cc \
 					$(FORESTDB_PATH)/src/kv_instance.cc \
 					$(FORESTDB_PATH)/src/list.cc \
-					$(FORESTDB_PATH)/src/snapshot.cc \
 					$(FORESTDB_PATH)/src/staleblock.cc \
+					$(FORESTDB_PATH)/src/superblock.cc \
 					$(FORESTDB_PATH)/src/transaction.cc \
 					$(FORESTDB_PATH)/src/version.cc \
 					$(FORESTDB_PATH)/src/wal.cc \
