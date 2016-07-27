@@ -50,6 +50,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -63,6 +64,9 @@ public class ForestDBViewStore implements ViewStore, QueryRowStore, Constants {
     private static final Float kCloseDelay = 60.0f;
 
     private static final int REDUCE_BATCH_SIZE = 100;
+
+    // lock for updateIndexes method
+    private final Object lockUpdateIndexes = new Object();
 
     ///////////////////////////////////////////////////////////////////////////
     // ForestDBViewStore
@@ -203,117 +207,123 @@ public class ForestDBViewStore implements ViewStore, QueryRowStore, Constants {
         return _view.getLastSequenceChangedAt();
     }
 
+    /**
+     * NOTE: updateIndexes() is not thread-safe without synchronized.
+     * see https://github.com/couchbase/couchbase-lite-java-core/issues/1363
+     */
     @Override
     public Status updateIndexes(List<ViewStore> inputViews) throws CouchbaseLiteException {
-        assert (inputViews != null);
+        synchronized (lockUpdateIndexes) {
+            assert (inputViews != null);
 
-        // workaround
-        if (!inputViews.contains(this))
-            inputViews.add(this);
+            // workaround
+            if (!inputViews.contains(this))
+                inputViews.add(this);
 
-        final ArrayList<View> views = new ArrayList<View>(inputViews.size());
-        final ArrayList<Mapper> mapBlocks = new ArrayList<Mapper>(inputViews.size());
-        final ArrayList<String> docTypes = new ArrayList<String>(inputViews.size());
-        boolean useDocType = false;
-        for (ViewStore v : inputViews) {
-            ForestDBViewStore view = (ForestDBViewStore) v;
-            ViewStoreDelegate delegate = view.getDelegate();
-            Mapper map = delegate != null ? delegate.getMap() : null;
-            if (map == null) {
-                Log.v(Log.TAG_VIEW, "    %s has no map block; skipping it", view.getName());
-                continue;
+            final ArrayList<View> views = new ArrayList<View>(inputViews.size());
+            final ArrayList<Mapper> mapBlocks = new ArrayList<Mapper>(inputViews.size());
+            final ArrayList<String> docTypes = new ArrayList<String>(inputViews.size());
+            boolean useDocType = false;
+            for (ViewStore v : inputViews) {
+                ForestDBViewStore view = (ForestDBViewStore) v;
+                ViewStoreDelegate delegate = view.getDelegate();
+                Mapper map = delegate != null ? delegate.getMap() : null;
+                if (map == null) {
+                    Log.v(Log.TAG_VIEW, "    %s has no map block; skipping it", view.getName());
+                    continue;
+                }
+                try {
+                    view.openIndex();
+                } catch (ForestException e) {
+                    throw new CouchbaseLiteException(ForestBridge.err2status(e));
+                }
+                views.add(view._view);
+                mapBlocks.add(map);
+                String docType = delegate.getDocumentType();
+                docTypes.add(docType);
+                if (docType != null && !useDocType)
+                    useDocType = true;
             }
+
+            if (views.size() == 0) {
+                Log.v(TAG, "    No input views to update the index");
+                return new Status(Status.NOT_MODIFIED);
+            }
+
+            boolean success = false;
+            Indexer indexer = null;
             try {
-                view.openIndex();
+                indexer = new Indexer(views.toArray(new View[views.size()]));
+                indexer.triggerOnView(this._view);
+                DocumentIterator itr;
+                try {
+                    itr = indexer.iterateDocuments();
+                    if (itr == null)
+                        return new Status(Status.NOT_MODIFIED);
+                } catch (ForestException e) {
+                    if (e.code == FDBErrors.FDB_RESULT_SUCCESS)
+                        return new Status(Status.NOT_MODIFIED);
+                    else
+                        throw new CouchbaseLiteException(ForestBridge.err2status(e));
+                }
+                // Now enumerate the docs:
+                Document doc;
+                while ((doc = itr.nextDocument()) != null) {
+                    // For each updated document:
+                    try {
+                        String docType = useDocType ? doc.getType() : null;
+                        // Skip design docs
+                        boolean validDocToIndex =
+                                !doc.deleted() && !doc.getDocID().startsWith("_design/");
+                        // Read the document body:
+                        Map<String, Object> body = ForestBridge.bodyOfSelectedRevision(doc);
+                        body.put("_id", doc.getDocID());
+                        body.put("_rev", doc.getRevID());
+                        body.put("_local_seq", doc.getSequence());
+                        if (doc.conflicted()) {
+                            List<String> currentRevIDs = ForestBridge.getCurrentRevisionIDs(doc);
+                            if (currentRevIDs != null && currentRevIDs.size() > 1)
+                                body.put("_conflicts",
+                                        currentRevIDs.subList(1, currentRevIDs.size()));
+                        }
+                        // Feed it to each view's map function:
+                        for (int viewNumber = 0; viewNumber < views.size(); viewNumber++) {
+                            if (!indexer.shouldIndex(doc, viewNumber))
+                                continue;
+
+                            boolean indexIt = validDocToIndex;
+                            if (indexIt && useDocType) {
+                                String viewDocType = docTypes.get(viewNumber);
+                                if (viewDocType != null)
+                                    indexIt = viewDocType.equals(docType);
+                            }
+
+                            if (indexIt)
+                                emit(indexer, viewNumber, doc, body, mapBlocks.get(viewNumber));
+                            else
+                                emit(indexer, viewNumber, doc, body, null);
+                        }
+                    } finally {
+                        doc.free();
+                    }
+                }
+                success = true;
             } catch (ForestException e) {
                 throw new CouchbaseLiteException(ForestBridge.err2status(e));
-            }
-            views.add(view._view);
-            mapBlocks.add(map);
-            String docType = delegate.getDocumentType();
-            docTypes.add(docType);
-            if (docType != null && !useDocType)
-                useDocType = true;
-        }
-
-        if (views.size() == 0) {
-            Log.v(TAG, "    No input views to update the index");
-            return new Status(Status.NOT_MODIFIED);
-        }
-
-        boolean success = false;
-        Indexer indexer = null;
-        try {
-            indexer = new Indexer(views.toArray(new View[views.size()]));
-            indexer.triggerOnView(this._view);
-            DocumentIterator itr;
-            try {
-                itr = indexer.iterateDocuments();
-                if (itr == null)
-                    return new Status(Status.NOT_MODIFIED);
-            } catch (ForestException e) {
-                if (e.code == FDBErrors.FDB_RESULT_SUCCESS)
-                    return new Status(Status.NOT_MODIFIED);
-                else
-                    throw new CouchbaseLiteException(ForestBridge.err2status(e));
-            }
-            // Now enumerate the docs:
-            Document doc;
-            while ((doc = itr.nextDocument()) != null) {
-                // For each updated document:
-                try {
-                    String docType = useDocType ? doc.getType() : null;
-                    // Skip design docs
-                    boolean validDocToIndex =
-                            !doc.deleted() && !doc.getDocID().startsWith("_design/");
-                    // Read the document body:
-                    Map<String, Object> body = ForestBridge.bodyOfSelectedRevision(doc);
-                    body.put("_id", doc.getDocID());
-                    body.put("_rev", doc.getRevID());
-                    body.put("_local_seq", doc.getSequence());
-                    if (doc.conflicted()) {
-                        List<String> currentRevIDs = ForestBridge.getCurrentRevisionIDs(doc);
-                        if (currentRevIDs != null && currentRevIDs.size() > 1)
-                            body.put("_conflicts",
-                                    currentRevIDs.subList(1, currentRevIDs.size()));
+            } finally {
+                if (indexer != null) {
+                    try {
+                        indexer.endIndex(success);
+                    } catch (ForestException ex) {
+                        Log.e(TAG, "Failed to call Indexer.endIndex(boolean)", ex);
+                        if (success)
+                            throw new CouchbaseLiteException(ForestBridge.err2status(ex));
                     }
-                    // Feed it to each view's map function:
-                    for (int viewNumber = 0; viewNumber < views.size(); viewNumber++) {
-                        if (!indexer.shouldIndex(doc, viewNumber))
-                            continue;
-
-                        boolean indexIt = validDocToIndex;
-                        if (indexIt && useDocType) {
-                            String viewDocType = docTypes.get(viewNumber);
-                            if (viewDocType != null)
-                                indexIt = viewDocType.equals(docType);
-                        }
-
-                        if (indexIt)
-                            emit(indexer, viewNumber, doc, body, mapBlocks.get(viewNumber));
-                        else
-                            emit(indexer, viewNumber, doc, body, null);
-                    }
-                } finally {
-                    doc.free();
                 }
             }
-            success = true;
-        } catch (ForestException e) {
-            throw new CouchbaseLiteException(ForestBridge.err2status(e));
-        } finally {
-            if (indexer != null) {
-                try {
-                    indexer.endIndex(success);
-                } catch (ForestException ex) {
-                    Log.e(TAG, "Failed to call Indexer.endIndex(boolean)", ex);
-                    if (success)
-                        throw new CouchbaseLiteException(ForestBridge.err2status(ex));
-                }
-            }
+            Log.v(TAG, "... Finished re-indexing (%s)", viewNames(inputViews));
+            return new Status(Status.OK);
         }
-        Log.v(TAG, "... Finished re-indexing (%s)", viewNames(inputViews));
-        return new Status(Status.OK);
     }
 
     private void emit(Indexer indexer, int viewNumber, Document doc,
@@ -587,17 +597,23 @@ public class ForestDBViewStore implements ViewStore, QueryRowStore, Constants {
      * - (void) closeIndex
      */
     private void closeIndex() {
-
         // TODO
         //NSObject cancelPreviousPerformRequestsWithTarget: self selector: @selector(closeIndex) object: nil];
 
-        if (_view != null)
+        // NOTE: view could be busy for indexing. as result, view.close() could fail.
+        //       It requires to wait till view is not busy. CBL Java/Android waits maximum 10 seconds.
+        for (int i = 0; i < 100 && _view != null; i++) {
             try {
                 _view.close();
                 _view = null;
             } catch (ForestException e) {
-                Log.w(TAG, "Failed to close Index: " + _view);
+                Log.w(TAG, "Failed to close Index: [%s] [%s]", _view, Thread.currentThread().getName());
+                try {
+                    Thread.sleep(100); // 100 ms (maximum wait time: 10sec)
+                } catch (Exception ex) {
+                }
             }
+        }
     }
 
     private boolean deleteViewFiles() {

@@ -1151,7 +1151,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
             try {
                 result.add(ForestDBViewStore.fileNameToViewName(filename));
             } catch (CouchbaseLiteException e) {
-                Log.i(TAG, "Invalid filename as a view store: filename=" + filename);
+                // ignore
             }
         }
         return result;

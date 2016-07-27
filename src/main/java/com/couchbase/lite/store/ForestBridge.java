@@ -123,6 +123,9 @@ public class ForestBridge implements Constants {
     public static int _err2status(ForestException ex) {
         if (ex == null || ex.code == 0)
             return Status.OK;
+
+        Log.d(TAG, "[_err2status()] ForestException: domain=%d, code=%d", ex, ex.domain, ex.code);
+
         switch (ex.domain) {
             case C4ErrorDomain.HTTPDomain:
                 return ex.code;
