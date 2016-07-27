@@ -68,7 +68,8 @@ LOCAL_CPPFLAGS	+=	-DFORESTDB_VERSION=\"internal\"
 # With android-21, it seems no longer necessary.
 # http://stackoverflow.com/questions/986426/what-do-stdc-limit-macros-and-stdc-constant-macros-mean
 LOCAL_CPPFLAGS	+=	-D__STDC_LIMIT_MACROS  
-LOCAL_CPPFLAGS  +=  -g -O0
+LOCAL_CPPFLAGS  +=  -g -O0  # for debugging
+#LOCAL_CPPFLAGS  +=  -O2
 LOCAL_CPPFLAGS	+=	-Wno-unused-value
 LOCAL_CPPFLAGS	+=	-Wno-deprecated-register
 LOCAL_CPPFLAGS  +=  -fexceptions
