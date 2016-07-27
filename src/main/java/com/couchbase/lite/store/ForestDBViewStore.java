@@ -602,14 +602,14 @@ public class ForestDBViewStore implements ViewStore, QueryRowStore, Constants {
 
         // NOTE: view could be busy for indexing. as result, view.close() could fail.
         //       iOS implementation makes delay 60sec
-        for (int i = 0; i < 60 && _view != null; i++) {
+        for (int i = 0; i < 100 && _view != null; i++) {
             try {
                 _view.close();
                 _view = null;
             } catch (ForestException e) {
                 Log.w(TAG, "Failed to close Index: [%s] [%s]", _view, Thread.currentThread().getName());
                 try {
-                    Thread.sleep(1000); // 1 sec (miximu wait time: 60sec)
+                    Thread.sleep(100); // 100 ms (maximum wait time: 10sec)
                 } catch (Exception ex) {
                 }
             }
