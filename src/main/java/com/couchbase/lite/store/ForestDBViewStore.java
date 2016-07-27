@@ -601,7 +601,7 @@ public class ForestDBViewStore implements ViewStore, QueryRowStore, Constants {
         //NSObject cancelPreviousPerformRequestsWithTarget: self selector: @selector(closeIndex) object: nil];
 
         // NOTE: view could be busy for indexing. as result, view.close() could fail.
-        //       iOS implementation makes delay 60sec
+        //       It requires to wait till view is not busy. CBL Java/Android waits maximum 10 seconds.
         for (int i = 0; i < 100 && _view != null; i++) {
             try {
                 _view.close();
