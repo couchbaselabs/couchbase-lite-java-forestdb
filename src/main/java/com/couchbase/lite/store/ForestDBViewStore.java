@@ -90,11 +90,20 @@ public class ForestDBViewStore implements ViewStore, QueryRowStore, Constants {
         this._dbStore = dbStore;
         this.name = name;
         this._path = new File(dbStore.directory, viewNameToFileName(name)).getPath();
-        File file = new File(this._path);
-        if (!file.exists()) {
+
+        // Somewhat of a hack: There probably won't be a file at the exact _path because ForestDB
+        // likes to append ".0" etc., but there will be a file with a ".meta" extension:
+        File metaFile = new File(this._path + ".meta");
+        if (!metaFile.exists()) {
             // migration: CBL Android/Java specific
             {
+                // NOTE: .0, .1, etc is created by forestdb if auto compact is enabled.
+                // renaming forestdb file name with .0 etc with different name could cause problem.
+                // Following migration could work because forestdb filename is without .0 etc.
+                // Once filename has .0 etc, do not rename file.
+
                 // if old index file exists, rename it to new name
+                File file = new File(this._path);
                 File oldFile = new File(dbStore.directory, oldViewNameToFileName(name));
                 if (oldFile.exists() && !oldFile.equals(file)) {
                     if (oldFile.renameTo(file))
