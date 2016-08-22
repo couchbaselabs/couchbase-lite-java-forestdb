@@ -628,10 +628,11 @@ public class ForestDBViewStore implements ViewStore, QueryRowStore, Constants {
     private boolean deleteViewFiles() {
         closeIndex();
         int flags = 0;
-        if(_dbStore.getAutoCompact())
+        if (_dbStore.getAutoCompact())
             flags |= Database.AutoCompact;
         try {
-            return View.deleteAtPath(_path, flags);
+            View.deleteAtPath(_path, flags);
+            return true;
         } catch (ForestException e) {
             Log.e(TAG, "error in deleteAtPath() _path=[%s]", e, _path);
             return false;
