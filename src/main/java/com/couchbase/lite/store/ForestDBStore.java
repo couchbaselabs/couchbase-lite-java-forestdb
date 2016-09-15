@@ -286,13 +286,18 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
         }
     }
 
+    /**
+     * @note Throw RuntimeException if TransactionalTask throw Exception.
+     *       Otherwise return true or false
+     */
     @Override
     public boolean runInTransaction(TransactionalTask task) {
         if (inTransaction())
             return task.run();
         else {
+            if (!beginTransaction())
+                return false;
             boolean commit = true;
-            beginTransaction();
             try {
                 commit = task.run();
             } catch (Exception e) {
@@ -300,7 +305,8 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                 Log.e(TAG, "[ForestDBStore.runInTransaction()] Error in TransactionalTask", e);
                 throw new RuntimeException(e);
             } finally {
-                endTransaction(commit);
+                if (!endTransaction(commit))
+                    return false;
             }
             return commit;
         }
@@ -816,7 +822,8 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
 
         // TODO: need to implement JNI for c4doc_put()
         // TODO: use inTransaction(Task)
-        beginTransaction();
+        if (!beginTransaction())
+            throw new CouchbaseLiteException(Status.DB_ERROR);
         try {
             String docID = inDocID;
             String prevRevID = inPrevRevID;
@@ -920,7 +927,8 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                 doc.free();
             }
         } finally {
-            endTransaction(outStatus.isSuccessful());
+            if (!endTransaction(outStatus.isSuccessful()))
+                throw new CouchbaseLiteException(Status.DB_ERROR);
         }
 
         if (change != null)
@@ -1438,16 +1446,17 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
         if (inTransaction())
             return task.run();
         else {
-            Status status = new Status(Status.OK);
+            if (!beginTransaction())
+                return new Status(Status.DB_ERROR);
             boolean commit = false;
-            beginTransaction();
             try {
-                status = task.run();
+                Status status = task.run();
                 commit = !status.isError();
+                return status;
             } finally {
-                endTransaction(commit);
+                if (!endTransaction(commit))
+                    return new Status(Status.DB_ERROR);
             }
-            return status;
         }
     }
 }
