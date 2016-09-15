@@ -675,10 +675,6 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                     if (!doc.conflicted() &&
                             options.getAllDocsMode() == Query.AllDocsMode.ONLY_CONFLICTS)
                         continue; // skip non-conflicted doc
-                    if (skip > 0) {
-                        --skip;
-                        continue;
-                    }
 
                     String revID = doc.getSelectedRevID();
                     long sequence = doc.getSelectedSequence();
