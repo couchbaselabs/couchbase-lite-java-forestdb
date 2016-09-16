@@ -642,8 +642,8 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
         // TODO: kCBLOnlyConflicts
 
         // No start or end ID:
+        DocumentIterator itr = null;
         try {
-            DocumentIterator itr;
             if (options.getKeys() != null) {
                 String[] docIDs = options.getKeys().toArray(new String[options.getKeys().size()]);
                 iteratorFlags |= IteratorFlags.kIncludeDeleted;
@@ -722,12 +722,16 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                     if (limit > 0 && --limit == 0)
                         break;
                 } finally {
-                    doc.free();
+                    if (doc != null)
+                        doc.free();
                 }
             }
         } catch (ForestException e) {
             Log.e(TAG, "Error in getAllDocs()", e);
             return null;
+        } finally {
+            if (itr != null)
+                itr.close();
         }
 
         result.put("rows", rows);
