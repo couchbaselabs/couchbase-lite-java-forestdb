@@ -61,6 +61,16 @@ ifeq ($(TARGET_ARCH),arm)
     LOCAL_CPPFLAGS +=	-D_ALIGN_MEM_ACCESS
 endif
 
+# https://github.com/couchbase/couchbase-lite-java-core/issues/1437
+ifeq ($(TARGET_ARCH),x86)
+    LOCAL_CFLAGS   +=	-mstackrealign
+    LOCAL_CPPFLAGS +=	-mstackrealign
+endif
+ifeq ($(TARGET_ARCH),x86_64)
+    LOCAL_CFLAGS   +=	-mstackrealign
+    LOCAL_CPPFLAGS +=	-mstackrealign
+endif
+
 LOCAL_CPPFLAGS	+=	-std=c++11
 LOCAL_CPPFLAGS	+=	-fexceptions
 LOCAL_CPPFLAGS	+=	-fpermissive
