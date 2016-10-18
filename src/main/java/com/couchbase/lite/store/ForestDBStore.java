@@ -458,7 +458,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
     @Override
     public List<String> getPossibleAncestorRevisionIDs(RevisionInternal rev,
                                                        int limit,
-                                                       AtomicBoolean onlyAttachments) {
+                                                       AtomicBoolean outHaveBodies) {
         int generation = RevisionInternal.generationFromRevID(rev.getRevID());
         if (generation <= 1)
             return null;
@@ -466,27 +466,30 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
         Document doc = getDocument(rev.getDocID());
         if (doc == null)
             return null;
-
         try {
+            if (outHaveBodies != null) outHaveBodies.set(true);
             List<String> revIDs = new ArrayList<String>();
-            do {
-                String revID = doc.getSelectedRevID();
-                if (RevisionInternal.generationFromRevID(revID) < generation
-                        && !doc.selectedRevDeleted()
-                        && doc.hasRevisionBody()
-                        && !(onlyAttachments.get() && !doc.selectedRevHasAttachments())) {
-                    if (onlyAttachments != null && revIDs.size() == 0) {
-                        onlyAttachments.set(doc.selectedRevHasAttachments());
+            for (int leaf = 1; leaf >= 0; --leaf) {
+                doc.selectCurrentRev();
+                do {
+                    String revID = doc.getSelectedRevID();
+                    int revFlags = (int) doc.getSelectedRevFlags();
+                    if (((revFlags & C4RevisionFlags.kRevLeaf) != 0) == (leaf == 1 ? true : false) &&
+                            RevisionInternal.generationFromRevID(revID) < generation) {
+                        revIDs.add(revID);
+                        if (outHaveBodies != null && !doc.hasRevisionBody())
+                            outHaveBodies.set(false);
+                        if (limit > 0 && revIDs.size() >= limit)
+                            break;
                     }
-                    revIDs.add(revID);
-                    if (limit > 0 && revIDs.size() >= limit)
-                        break;
-                }
-            } while (doc.selectNextRev());
-            return revIDs;
+                } while (doc.selectNextRev());
+                if (revIDs.size() > 0)
+                    return revIDs;
+            }
         } finally {
             doc.free();
         }
+        return null;
     }
 
     @Override
