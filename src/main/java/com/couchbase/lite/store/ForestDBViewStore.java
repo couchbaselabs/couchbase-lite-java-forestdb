@@ -411,7 +411,10 @@ public class ForestDBViewStore implements ViewStore, QueryRowStore, Constants {
                         // #Linked_documents
                         String linkedRev = (String) ((Map) value).get("_rev");
                         docRevision = _dbStore.getDocument(linkedID, linkedRev, true);
-                        sequence = docRevision.getSequence();
+                        if (docRevision != null)
+                            sequence = docRevision.getSequence();
+                        else
+                            Log.w(TAG, "Couldn't load linked doc %s rev %s", linkedID, linkedRev);
                     } else {
                         docRevision = _dbStore.getDocument(docID, null, true);
                     }
