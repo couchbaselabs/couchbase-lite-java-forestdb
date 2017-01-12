@@ -811,15 +811,6 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
         if (readOnly)
             throw new CouchbaseLiteException(Status.FORBIDDEN);
 
-        byte[] json;
-        if (properties != null && properties.size() > 0) {
-            json = RevisionUtils.asCanonicalJSON(properties);
-            if (json == null)
-                throw new CouchbaseLiteException(Status.BAD_JSON);
-        } else {
-            json = "{}".getBytes();
-        }
-
         RevisionInternal putRev = null;
         DocumentChange change = null;
 
@@ -834,11 +825,40 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
             Document doc;
             if (docID == null || docID.isEmpty())
                 docID = Misc.CreateUUID();
+
             try {
                 doc = forest.getDocument(docID, false);
             } catch (ForestException e) {
                 Log.e(TAG, "ForestDB Error: getDocument(docID, false) docID=[%s]", e, docID);
                 throw new CouchbaseLiteException(Status.DB_ERROR);
+            }
+
+            if (properties != null && properties.containsKey("_attachments")) {
+                Map<String, Object> attachments = (Map<String, Object>) properties.get("_attachments");
+                if (attachments != null) {
+                    // https://github.com/couchbase/couchbase-lite-net/issues/749
+                    // Need to ensure revpos is correct for a revision inserted on top of a deletion
+                    if (doc.deleted()) {
+                        Iterator<String> itr = attachments.keySet().iterator();
+                        while (itr.hasNext()) {
+                            String name = itr.next();
+                            Map<String, Object> metadata = (Map<String, Object>) attachments.get(name);
+                            if (metadata != null) {
+                                metadata.put("revpos", Revision.generationFromRevID(doc.getRevID()) + 1);
+                            }
+                        }
+                    }
+                }
+            }
+
+            byte[] json;
+            if (properties != null && properties.size() > 0) {
+                json = RevisionUtils.asCanonicalJSON(properties);
+                if (json == null)
+                    throw new CouchbaseLiteException(
+                            Status.BAD_JSON);
+            } else {
+                json = "{}".getBytes();
             }
 
             try {
