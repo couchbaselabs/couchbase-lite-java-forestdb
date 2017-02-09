@@ -50,7 +50,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -60,6 +59,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static com.couchbase.cbforest.Constants.C4ErrorDomain.ForestDBDomain;
+import static com.couchbase.cbforest.Constants.FDBErrors.FDB_RESULT_HANDLE_BUSY;
 
 public class ForestDBStore implements Store, EncryptableStore, Constants {
 
@@ -78,6 +80,8 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
     }
 
     public static String kDBFilename = "db.forest";
+
+    private static final int MAX_RECORDS_TO_READ_FROM_FORESTDB_AT_ONCE = 500;
 
     private static final int kDefaultMaxRevTreeDepth = 20;
 
@@ -158,7 +162,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
             forest = new Database(forestPath, flags, enAlgorithm, enKey);
         } catch (ForestException e) {
             Log.e(TAG, "Failed to open the forestdb: domain=%d, error=%d", e.domain, e.code, e);
-            if (e.domain == C4ErrorDomain.ForestDBDomain &&
+            if (e.domain == ForestDBDomain &&
                     (e.code == FDBErrors.FDB_RESULT_NO_DB_HEADERS ||
                             e.code == FDBErrors.FDB_RESULT_CRYPTO_ERROR)) {
                 throw new CouchbaseLiteException("Cannot create database", e, Status.UNAUTHORIZED);
@@ -249,7 +253,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
             return new String(metaNbody[1]);
         } catch (ForestException e) {
             // KEY NOT FOUND
-            if (e.domain == C4ErrorDomain.ForestDBDomain &&
+            if (e.domain == ForestDBDomain &&
                     e.code == FDBErrors.FDB_RESULT_KEY_NOT_FOUND) {
                 Log.i(TAG, "[getInfo()] Key(\"%s\") is not found.", key);
             }
@@ -618,7 +622,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
     @Override
     public Map<String, Object> getAllDocs(QueryOptions options) throws CouchbaseLiteException {
         Map<String, Object> result = new HashMap<String, Object>();
-        List<QueryRow> rows = new ArrayList<QueryRow>();
+        List<QueryRow> rows;
 
         if (options == null)
             options = new QueryOptions();
@@ -644,103 +648,145 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
             iteratorFlags |= IteratorFlags.kIncludeDeleted;
         // TODO: kCBLOnlyConflicts
 
-        // No start or end ID:
-        DocumentIterator itr = null;
-        try {
-            if (options.getKeys() != null) {
-                String[] docIDs = options.getKeys().toArray(new String[options.getKeys().size()]);
-                iteratorFlags |= IteratorFlags.kIncludeDeleted;
-                itr = forest.iterator(docIDs, iteratorFlags);
-            } else {
-                String startKey;
-                String endKey;
-                if (options.isDescending()) {
-                    startKey = (String) View.keyForPrefixMatch(
-                            options.getStartKey(), options.getPrefixMatchLevel());
-                    endKey = (String) options.getEndKey();
-                } else {
-                    startKey = (String) options.getStartKey();
-                    endKey = (String) View.keyForPrefixMatch(
-                            options.getEndKey(), options.getPrefixMatchLevel());
-                }
-                itr = forest.iterator(startKey, endKey, skip, iteratorFlags);
-            }
-            Document doc;
-            while ((doc = itr.nextDocument()) != null) {
+        if (options.getKeys() != null) {
+            rows = new ArrayList<QueryRow>();
+            iteratorFlags |= IteratorFlags.kIncludeDeleted;
+            int total = options.getKeys().size();
+            int read = 0;
+            while (total > 0) {
+                int plan = Math.min(total, MAX_RECORDS_TO_READ_FROM_FORESTDB_AT_ONCE);
+                String[] docIDs = options.getKeys().subList(read, read + plan).toArray(new String[plan]);
                 try {
-                    String docID = doc.getDocID();
-                    if (!doc.exists()) {
-                        Log.v(TAG, "AllDocs: No such row with key=\"%s\"", docID);
-                        QueryRow row = new QueryRow(null, 0, docID, null, null);
-                        rows.add(row);
+                    DocumentIterator itr = forest.iterator(docIDs, iteratorFlags);
+                    try {
+                        List<QueryRow> retRows = readFromIterator(itr, options, includeDocs, filter, limit);
+                        rows.addAll(retRows);
+                        limit -= retRows.size();
+                        total -= retRows.size();
+                        read += retRows.size();
+                    } finally {
+                        if (itr != null)
+                            itr.close();
+                    }
+                } catch (ForestException e) {
+                    if (e.domain == ForestDBDomain && e.code == FDB_RESULT_HANDLE_BUSY) {
+                        Log.w(TAG, "ForestDB handle is busy, retry it after 500ms. error=%s", e.toString());
+                        try {
+                            Thread.sleep(500); // 500 ms
+                        } catch (InterruptedException ie) {
+                        }
                         continue;
+                    } else {
+                        Log.e(TAG, "Error in getAllDocs()", e);
+                        return null;
                     }
-
-                    boolean deleted = doc.deleted();
-                    if (deleted &&
-                            options.getAllDocsMode() != Query.AllDocsMode.INCLUDE_DELETED &&
-                            options.getKeys() == null)
-                        continue; // skip deleted doc
-                    if (!doc.conflicted() &&
-                            options.getAllDocsMode() == Query.AllDocsMode.ONLY_CONFLICTS)
-                        continue; // skip non-conflicted doc
-
-                    String revID = doc.getSelectedRevID();
-                    long sequence = doc.getSelectedSequence();
-
-                    RevisionInternal docRevision = null;
-                    if (includeDocs) {
-                        // Fill in the document contents:
-                        docRevision = ForestBridge.revisionObject(doc, docID, revID, true);
-                        if (docRevision == null)
-                            Log.w(TAG, "AllDocs: Unable to read body of doc %s", docID);
-                    }
-
-                    List<String> conflicts = new ArrayList<String>();
-                    if ((options.getAllDocsMode() == Query.AllDocsMode.SHOW_CONFLICTS
-                            || options.getAllDocsMode() == Query.AllDocsMode.ONLY_CONFLICTS)
-                            && doc.conflicted()) {
-                        conflicts = ForestBridge.getCurrentRevisionIDs(doc);
-                        if (conflicts != null && conflicts.size() == 1)
-                            conflicts = null;
-                    }
-
-                    Map<String, Object> value = new HashMap<String, Object>();
-                    value.put("rev", revID);
-                    if (deleted) // Note: In case of false, should not add for java
-                        value.put("deleted", (deleted ? true : null));
-                    value.put("_conflicts", conflicts);// (not found in CouchDB)
-
-                    QueryRow row = new QueryRow(docID,
-                            sequence,
-                            docID,
-                            value,
-                            docRevision);
-                    if (filter != null && !filter.apply(row)) {
-                        Log.v(TAG, "   ... on 2nd thought, filter predicate skipped that row");
-                        continue;
-                    }
-                    rows.add(row);
-
-                    if (limit > 0 && --limit == 0)
-                        break;
-                } finally {
-                    if (doc != null)
-                        doc.free();
                 }
             }
-        } catch (ForestException e) {
-            Log.e(TAG, "Error in getAllDocs()", e);
-            return null;
-        } finally {
-            if (itr != null)
-                itr.close();
+        } else {
+            String startKey;
+            String endKey;
+            if (options.isDescending()) {
+                startKey = (String) View.keyForPrefixMatch(
+                        options.getStartKey(), options.getPrefixMatchLevel());
+                endKey = (String) options.getEndKey();
+            } else {
+                startKey = (String) options.getStartKey();
+                endKey = (String) View.keyForPrefixMatch(
+                        options.getEndKey(), options.getPrefixMatchLevel());
+            }
+            try {
+                DocumentIterator itr = forest.iterator(startKey, endKey, skip, iteratorFlags);
+                try {
+                    rows = readFromIterator(itr, options, includeDocs, filter, limit);
+                } finally {
+                    if (itr != null)
+                        itr.close();
+                }
+            } catch (ForestException e) {
+                Log.e(TAG, "Error in getAllDocs()", e);
+                return null;
+            }
         }
+
+        Log.e(TAG, "rows.size()=%d", rows.size());
 
         result.put("rows", rows);
         result.put("total_rows", rows.size());
         result.put("offset", options.getSkip());
         return result;
+    }
+
+    private static List<QueryRow> readFromIterator(DocumentIterator itr,
+                                                   QueryOptions options,
+                                                   boolean includeDocs,
+                                                   Predicate<QueryRow> filter,
+                                                   int limit) throws ForestException {
+        List<QueryRow> rows = new ArrayList<QueryRow>();
+        Document doc;
+        while ((doc = itr.nextDocument()) != null) {
+            try {
+                String docID = doc.getDocID();
+                if (!doc.exists()) {
+                    Log.v(TAG, "AllDocs: No such row with key=\"%s\"", docID);
+                    QueryRow row = new QueryRow(null, 0, docID, null, null);
+                    rows.add(row);
+                    continue;
+                }
+
+                boolean deleted = doc.deleted();
+                if (deleted &&
+                        options.getAllDocsMode() != Query.AllDocsMode.INCLUDE_DELETED &&
+                        options.getKeys() == null)
+                    continue; // skip deleted doc
+                if (!doc.conflicted() &&
+                        options.getAllDocsMode() == Query.AllDocsMode.ONLY_CONFLICTS)
+                    continue; // skip non-conflicted doc
+
+                String revID = doc.getSelectedRevID();
+                long sequence = doc.getSelectedSequence();
+
+                RevisionInternal docRevision = null;
+                if (includeDocs) {
+                    // Fill in the document contents:
+                    docRevision = ForestBridge.revisionObject(doc, docID, revID, true);
+                    if (docRevision == null)
+                        Log.w(TAG, "AllDocs: Unable to read body of doc %s", docID);
+                }
+
+                List<String> conflicts = new ArrayList<String>();
+                if ((options.getAllDocsMode() == Query.AllDocsMode.SHOW_CONFLICTS
+                        || options.getAllDocsMode() == Query.AllDocsMode.ONLY_CONFLICTS)
+                        && doc.conflicted()) {
+                    conflicts = ForestBridge.getCurrentRevisionIDs(doc);
+                    if (conflicts != null && conflicts.size() == 1)
+                        conflicts = null;
+                }
+
+                Map<String, Object> value = new HashMap<String, Object>();
+                value.put("rev", revID);
+                if (deleted) // Note: In case of false, should not add for java
+                    value.put("deleted", (deleted ? true : null));
+                value.put("_conflicts", conflicts);// (not found in CouchDB)
+
+                QueryRow row = new QueryRow(docID,
+                        sequence,
+                        docID,
+                        value,
+                        docRevision);
+                if (filter != null && !filter.apply(row)) {
+                    Log.v(TAG, "   ... on 2nd thought, filter predicate skipped that row");
+                    continue;
+                }
+                rows.add(row);
+
+                if (limit > 0 && --limit == 0)
+                    break;
+            } finally {
+                if (doc != null)
+                    doc.free();
+            }
+        }
+        return rows;
     }
 
     @Override
@@ -959,6 +1005,31 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
         return putRev;
     }
 
+    private Document getDocumentWithRetry(String docID, boolean mustExist, int retry)
+            throws ForestException {
+
+        ForestException ex = null;
+        for (int i = 0; i < retry; i++) {
+            try {
+                Document doc = forest.getDocument(docID, mustExist);
+                return doc;
+            } catch (ForestException fe) {
+                ex = fe;
+                if (fe.domain == ForestDBDomain && fe.code == FDB_RESULT_HANDLE_BUSY) {
+                    try {
+                        Thread.sleep(300); // 300ms
+                    } catch (InterruptedException e) {
+                    }
+                    continue;
+                } else {
+                    throw fe;
+                }
+            }
+        }
+        Log.e(TAG, "Retried %s times. But keep failing ForestDB.getDocument() docID=%s", retry, docID);
+        throw ex;
+    }
+
     /**
      * Add an existing revision of a document (probably being pulled) plus its ancestors.
      */
@@ -985,10 +1056,9 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
         Status status = inTransaction(new Task() {
             @Override
             public Status run() {
-                // First get the CBForest doc:
-                Document doc;
                 try {
-                    doc = forest.getDocument(rev.getDocID(), false);
+                    // First get the CBForest doc:
+                    Document doc = getDocumentWithRetry(rev.getDocID(), false, 5);
                     try {
                         int common = doc.insertRevisionWithHistory(
                                 json,
