@@ -708,8 +708,6 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
             }
         }
 
-        Log.e(TAG, "rows.size()=%d", rows.size());
-
         result.put("rows", rows);
         result.put("total_rows", rows.size());
         result.put("offset", options.getSkip());
@@ -1026,7 +1024,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                 }
             }
         }
-        Log.e(TAG, "Retried %s times. But keep failing ForestDB.getDocument() docID=%s", retry, docID);
+        Log.e(TAG, "Retried %s times. But keep failing ForestDB.getDocument() docID=%s", ex, retry, docID);
         throw ex;
     }
 
