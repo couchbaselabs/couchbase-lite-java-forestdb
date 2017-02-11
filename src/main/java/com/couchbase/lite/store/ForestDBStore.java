@@ -653,8 +653,8 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
             iteratorFlags |= IteratorFlags.kIncludeDeleted;
             int total = options.getKeys().size();
             int read = 0;
-            while (total > 0) {
-                int plan = Math.min(total, MAX_RECORDS_TO_READ_FROM_FORESTDB_AT_ONCE);
+            while (total > read) { // loop till consume all requested docIDs
+                int plan = Math.min(total - read, MAX_RECORDS_TO_READ_FROM_FORESTDB_AT_ONCE);
                 String[] docIDs = options.getKeys().subList(read, read + plan).toArray(new String[plan]);
                 try {
                     DocumentIterator itr = forest.iterator(docIDs, iteratorFlags);
@@ -662,17 +662,16 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                         List<QueryRow> retRows = readFromIterator(itr, options, includeDocs, filter, limit);
                         rows.addAll(retRows);
                         limit -= retRows.size();
-                        total -= retRows.size();
-                        read += retRows.size();
+                        read += plan; // number of attempted doc IDs as retRows.size() could be smaller than plan.
                     } finally {
                         if (itr != null)
                             itr.close();
                     }
                 } catch (ForestException e) {
                     if (e.domain == ForestDBDomain && e.code == FDB_RESULT_HANDLE_BUSY) {
-                        Log.w(TAG, "ForestDB handle is busy, retry it after 500ms. error=%s", e.toString());
+                        Log.w(TAG, "ForestDB handle is busy, retry it after 300ms. error=%s", e.toString());
                         try {
-                            Thread.sleep(500); // 500 ms
+                            Thread.sleep(300); // 300 ms
                         } catch (InterruptedException ie) {
                         }
                         continue;
