@@ -988,7 +988,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                     throw new CouchbaseLiteException(Status.DB_ERROR);
                 }
                 putRev.setSequence(doc.getSequence());
-                change = changeWithNewRevision(putRev, isWinner, doc, null);
+                change = changeWithNewRevision(putRev, isWinner, deleting, doc, null);
             } finally {
                 doc.free();
             }
@@ -1375,6 +1375,15 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                                                  URL source) {
         String winningRevID = isWinningRev ? inRev.getRevID() : doc.getSelectedRevID();
         return new DocumentChange(inRev, winningRevID, doc.conflicted(), source);
+    }
+
+    private DocumentChange changeWithNewRevision(RevisionInternal inRev,
+                                                 boolean isWinningRev,
+                                                 boolean deleting,
+                                                 Document doc,
+                                                 URL source) {
+        String winningRevID = isWinningRev ? inRev.getRevID() : doc.getSelectedRevID();
+        return new DocumentChange(inRev, winningRevID, !deleting && !isWinningRev, source);
     }
 
     private boolean beginTransaction() {
