@@ -1549,4 +1549,8 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
             }
         }
     }
+    
+    public RevisionInternal getDocument(String docID, long sequence) {
+        return null;
+    }
 }
