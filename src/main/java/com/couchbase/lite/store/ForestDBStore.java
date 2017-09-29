@@ -147,7 +147,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
     public void open() throws CouchbaseLiteException {
         // Flag:
         int flags = readOnly ? Database.ReadOnly : Database.Create;
-        if(autoCompact)
+        if (autoCompact)
             flags |= Database.AutoCompact;
 
         // Encryption:
@@ -292,7 +292,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
 
     /**
      * @note Throw RuntimeException if TransactionalTask throw Exception.
-     *       Otherwise return true or false
+     * Otherwise return true or false
      */
     @Override
     public boolean runInTransaction(TransactionalTask task) {
@@ -317,17 +317,20 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
     }
 
     @Override
-    public RevisionInternal getDocument(String docID, String revID, boolean withBody) {
+    public RevisionInternal getDocument(String docID, String inRevID, boolean withBody, Status outStatus) {
         Document doc = getDocument(docID);
         if (doc == null)
             return null;
         try {
-            Status status = selectRev(doc, revID, withBody);
-            if (status.isError())
+            Status res = selectRev(doc, inRevID, withBody);
+            outStatus.setCode(res.getCode());
+            if (outStatus.isError() && outStatus.getCode() != Status.GONE)
                 return null;
-            if (revID == null && doc.selectedRevDeleted())
+            if (inRevID == null && doc.selectedRevDeleted()) {
+                outStatus.setCode(Status.DELETED);
                 return null;
-            return ForestBridge.revisionObject(doc, docID, revID, withBody);
+            }
+            return ForestBridge.revisionObject(doc, docID, inRevID, withBody);
         } finally {
             doc.free();
         }

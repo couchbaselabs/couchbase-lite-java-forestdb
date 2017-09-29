@@ -33,7 +33,6 @@ import com.couchbase.lite.QueryRow;
 import com.couchbase.lite.Reducer;
 import com.couchbase.lite.Status;
 import com.couchbase.lite.internal.RevisionInternal;
-import com.couchbase.lite.support.FileDirUtils;
 import com.couchbase.lite.support.action.Action;
 import com.couchbase.lite.support.action.ActionBlock;
 import com.couchbase.lite.support.action.ActionException;
@@ -50,7 +49,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -406,17 +404,19 @@ public class ForestDBViewStore implements ViewStore, QueryRowStore, Constants {
                     String linkedID = null;
                     if (value instanceof Map)
                         linkedID = (String) ((Map) value).get("_id");
+                    Status status = new Status();
                     if (linkedID != null) {
                         // http://wiki.apache.org/couchdb/Introduction_to_CouchDB_views
                         // #Linked_documents
                         String linkedRev = (String) ((Map) value).get("_rev");
-                        docRevision = _dbStore.getDocument(linkedID, linkedRev, true);
+                        docRevision = _dbStore.getDocument(linkedID, linkedRev, true, status);
                         if (docRevision != null)
                             sequence = docRevision.getSequence();
                         else
-                            Log.w(TAG, "Couldn't load linked doc %s rev %s", linkedID, linkedRev);
+                            Log.w(TAG, "Couldn't load linked doc %s rev %s: status %d",
+                                    linkedID, linkedRev, status.getCode());
                     } else {
-                        docRevision = _dbStore.getDocument(docID, null, true);
+                        docRevision = _dbStore.getDocument(docID, null, true, status);
                     }
                 }
                 Log.v(TAG, "Query %s: Found row with key=%s, value=%s, id=%s",
@@ -583,7 +583,7 @@ public class ForestDBViewStore implements ViewStore, QueryRowStore, Constants {
     private View openIndex(int flags, boolean dryRun) throws ForestException {
         if (_view == null) {
             // Flags:
-            if(_dbStore.getAutoCompact())
+            if (_dbStore.getAutoCompact())
                 flags |= Database.AutoCompact;
 
             // Encryption:
@@ -746,7 +746,7 @@ public class ForestDBViewStore implements ViewStore, QueryRowStore, Constants {
 
     protected static String fileNameToViewName(String fileName) throws CouchbaseLiteException {
         Matcher m = kViewNameRegex.matcher(fileName);
-        if(!m.matches())
+        if (!m.matches())
             throw new CouchbaseLiteException(Status.BAD_PARAM);
         String viewName = fileName.substring(0, fileName.indexOf("."));
         return unescapeViewName(viewName);

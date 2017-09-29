@@ -42,13 +42,15 @@ public class ForestBridge implements Constants {
             String docID,
             String revID,
             boolean withBody) {
+
+        boolean deleted = doc.selectedRevDeleted();
         if (revID == null)
             revID = doc.getSelectedRevID();
-        RevisionInternal rev = new RevisionInternal(docID, revID, doc.selectedRevDeleted());
+        RevisionInternal rev = new RevisionInternal(docID, revID, deleted);
         rev.setSequence(doc.getSelectedSequence());
         if (withBody) {
             Status status = loadBodyOfRevisionObject(rev, doc);
-            if (status.isError())
+            if (status.isError() && status.getCode() != Status.GONE)
                 return null;
         }
         return rev;
@@ -61,14 +63,12 @@ public class ForestBridge implements Constants {
      */
     public static Status loadBodyOfRevisionObject(RevisionInternal rev, Document doc) {
         try {
-            if (!doc.selectRevID(rev.getRevID(), true))
-                return new Status(Status.NOT_FOUND);
-            byte[] json = doc.getSelectedBody();
-            if (json != null)
-                rev.setJSON(json);
             rev.setSequence(doc.getSelectedSequence());
+            doc.selectRevID(rev.getRevID(), true);
+            rev.setJSON(doc.getSelectedBody());
             return new Status(Status.OK);
         } catch (ForestException ex) {
+            rev.setMissing(true);
             return err2status(ex);
         }
     }
