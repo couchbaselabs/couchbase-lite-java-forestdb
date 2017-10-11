@@ -465,7 +465,8 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
     @Override
     public List<String> getPossibleAncestorRevisionIDs(RevisionInternal rev,
                                                        int limit,
-                                                       AtomicBoolean outHaveBodies) {
+                                                       AtomicBoolean outHaveBodies,
+                                                       boolean withBodiesOnly) {
         int generation = RevisionInternal.generationFromRevID(rev.getRevID());
         if (generation <= 1)
             return null;
@@ -483,9 +484,27 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                     int revFlags = (int) doc.getSelectedRevFlags();
                     if (((revFlags & C4RevisionFlags.kRevLeaf) != 0) == (leaf == 1 ? true : false) &&
                             RevisionInternal.generationFromRevID(revID) < generation) {
-                        revIDs.add(revID);
-                        if (outHaveBodies != null && !doc.hasRevisionBody())
+
+                        if (outHaveBodies != null && !doc.hasRevisionBody()) {
                             outHaveBodies.set(false);
+                            if (withBodiesOnly)
+                                continue;
+                        }
+                        if (withBodiesOnly) {
+                            byte[] body = null;
+                            try {
+                                body = doc.getSelectedBody();
+                            } catch (ForestException e) {
+                                Log.e(TAG, e.toString(), e);
+                            }
+                            if (body != null && body.length > 0) {
+                                Map<String, Object> props = getDocProperties(body);
+                                if (props != null && props.containsKey("_removed") && (Boolean) props.get("_removed") == true)
+                                    continue;
+                            }
+                        }
+
+                        revIDs.add(revID);
                         if (limit > 0 && revIDs.size() >= limit)
                             break;
                     }
