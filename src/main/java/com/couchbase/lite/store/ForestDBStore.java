@@ -491,7 +491,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                                 continue;
                         }
                         if (withBodiesOnly) {
-                            byte[] body = new byte[0];
+                            byte[] body = null;
                             try {
                                 body = doc.getSelectedBody();
                             } catch (ForestException e) {
@@ -499,7 +499,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                             }
                             if (body != null && body.length > 0) {
                                 Map<String, Object> props = getDocProperties(body);
-                                if (props.containsKey("_removed"))
+                                if (props.containsKey("_removed") && (Boolean) props.get("_removed") == true)
                                     continue;
                             }
                         }
