@@ -499,7 +499,7 @@ public class ForestDBStore implements Store, EncryptableStore, Constants {
                             }
                             if (body != null && body.length > 0) {
                                 Map<String, Object> props = getDocProperties(body);
-                                if (props.containsKey("_removed") && (Boolean) props.get("_removed") == true)
+                                if (props != null && props.containsKey("_removed") && (Boolean) props.get("_removed") == true)
                                     continue;
                             }
                         }
