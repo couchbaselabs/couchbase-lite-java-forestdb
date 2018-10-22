@@ -119,7 +119,7 @@ model {
         clang(Clang)
         gcc(Gcc)
     }
-    
+
     repositories {
         libs(PrebuiltLibraries) {
             libcrypto {
@@ -429,13 +429,13 @@ model {
                     linker.args '-framework', 'Security'
                 } else {
                     cppCompiler.args '-D_CRYPTO_OPENSSL'
-                    sources { 
+                    sources {
                         cpp {
                             lib library: 'libcrypto', linkage: 'static'
                         }
                     }
                 }
-                
+
                 // JNI Compiler and linker options:
                 if (targetPlatform.operatingSystem.macOsX) {
                     cppCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
@@ -530,13 +530,27 @@ uploadArchives {
             pom.groupId = 'com.couchbase.lite'
             pom.artifactId = 'couchbase-lite-java-forestdb'
             pom.project {
+                name 'com.couchbase.lite:couchbase-lite-java-forestdb'
+                description 'ForestDB Couchbase Lite Storage Engine for Java/Android'
+                url 'http://developer.couchbase.com/mobile/'
                 licenses {
                     license {
-                        name 'Couchbase Community Edition License Agreement'
-                        url 'http://www.couchbase.com/agreement/community'
+                        name 'Couchbase, Inc. Community Edition License Agreement'
+                        url 'https://www.couchbase.com/binaries/content/assets/website/legal/ce-license-agreement.pdf'
                         distribution 'repo'
                     }
                 }
+                scm {
+                    url 'http://developer.couchbase.com/mobile/'
+                }
+                developers {
+                    developer {
+                        name 'Couchbase Mobile'
+                        email 'mobile@couchbase.com'
+                        organization 'Couchbase'
+                        organizationUrl 'http://www.couchbase.com'
+                    }
+               }
             }
         }
     }
