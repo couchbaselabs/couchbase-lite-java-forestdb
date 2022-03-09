@@ -1,3 +1,4 @@
+⚠️ This repo is obsolete.  It was used in Couchbase Lite Android / Java 1.x.
 
 Java wrapper around [CBForest](https://github.com/couchbaselabs/cbforest).  Includes SWIG generated java wrappers for CBForest.
 
